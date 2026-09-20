@@ -1,0 +1,95 @@
+{
+  "ir_version": "0.1",
+  "meta": { "name": "TQQQ Weekly 1%", "version": 1 },
+  "params": {
+    "TIER_HIGH": 1.08177, "TIER_MID": 1.07, "TIER_LOW": 1.025,
+    "TIER_PROFIT_HIGH": 0.003,
+    "STOP_PCT": 0.20,
+    "SIZE_BASE": 0.98, "SIZE_VOLBOOST": 1.25,
+    "AVGDOWN_TRIGGER": -0.05, "AVGDOWN_SIZE": 0.30,
+    "VOL_WINDOW": 14, "VOL_LOOKBACK": 252, "VOL_DECILE": 0.9
+  },
+  "universe": { "static": ["TQQQ"] },
+  "rules": [
+
+    {
+      "id": "avg-down",
+      "trigger": { "type": "session_open", "days": "all" },
+      "guard": { "once_per": "position" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "lte": [ { "pos": "pnl_pct", "basis": "prior_close" },
+                   { "param": "AVGDOWN_TRIGGER" } ] } ] },
+      "action": { "type": "market_order", "side": "buy",
+                  "size": { "pct_equity": { "param": "AVGDOWN_SIZE" },
+                            "ref": "prior_close" } }
+    },
+
+    {
+      "id": "tiered-target",
+      "trigger": { "type": "session_open", "days": "all" },
+      "when": { "pos": "invested" },
+      "action": {
+        "type": "managed_target", "qty": "all",
+        "price": { "mul": [
+          { "pos": "entry_price" },
+          { "cases": [
+            { "when": { "gt": [ { "pos": "pnl_pct", "basis": "prior_close" },
+                                { "param": "TIER_PROFIT_HIGH" } ] },
+              "value": { "param": "TIER_HIGH" } },
+            { "when": { "gt": [ { "pos": "pnl_pct", "basis": "prior_close" }, 0 ] },
+              "value": { "param": "TIER_MID" } } ],
+            "default": { "param": "TIER_LOW" } } ] }
+      }
+    },
+
+    {
+      "id": "weekly-entry",
+      "trigger": { "type": "session_open", "days": "first_of_week" },
+      "guard": { "once_per": "week" },
+      "when": { "not": { "pos": "invested" } },
+      "action": {
+        "type": "market_order", "side": "buy",
+        "size": { "pct_equity": {
+          "if": { "gte": [
+            { "ind": "pct_rank",
+              "of": { "ind": "realized_vol", "window": { "param": "VOL_WINDOW" } },
+              "lookback": { "param": "VOL_LOOKBACK" }, "min_obs": 60 },
+            { "param": "VOL_DECILE" } ] },
+          "then": { "param": "SIZE_VOLBOOST" },
+          "else": { "param": "SIZE_BASE" } },
+          "ref": "session_open" }
+      }
+    },
+
+    {
+      "id": "close-stop",
+      "trigger": { "type": "before_close", "minutes": 1, "days": "all" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "gte": [ { "pos": "days_held" }, 1 ] },
+        { "lte": [ { "ind": "price", "field": "last" },
+                   { "mul": [ { "pos": "entry_price" },
+                              { "sub": [ 1, { "param": "STOP_PCT" } ] } ] } ] } ] },
+      "action": { "type": "liquidate" }
+    },
+
+    {
+      "id": "loser-exit-thu",
+      "trigger": { "type": "at_time", "time": "14:00", "days": "day_before_last_of_week" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "lte": [ { "ind": "price", "field": "last" }, { "pos": "entry_price" } ] } ] },
+      "action": { "type": "liquidate" }
+    },
+
+    {
+      "id": "loser-exit-eow",
+      "trigger": { "type": "at_close", "days": "last_of_week", "assess": "session_open" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "lte": [ { "pos": "pnl_pct", "basis": "prior_close" }, 0 ] } ] },
+      "action": { "type": "liquidate", "style": "at_close" }
+    }
+  ]
+}

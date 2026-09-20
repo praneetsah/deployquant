@@ -1,0 +1,787 @@
+{
+ "AbandonedBaby": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "AccumulationDistribution": {
+  "value": 6123.10665133,
+  "is_ready": true
+ },
+ "AdvanceBlock": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "BalanceOfPower": {
+  "value": -0.21387879,
+  "is_ready": true
+ },
+ "BeltHold": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Breakaway": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ClosingMarubozu": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ConcealedBabySwallow": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "CoppockCurve": {
+  "value": 9.40558163,
+  "is_ready": true
+ },
+ "Counterattack": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "DarkCloudCover": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Doji": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "DojiStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "DragonflyDoji": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Engulfing": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "EveningDojiStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "EveningStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "GapSideBySideWhite": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "GravestoneDoji": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Hammer": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "HangingMan": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Harami": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "HaramiCross": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "HeikinAshi": {
+  "value": 131.43605,
+  "is_ready": true,
+  "open": 128.88322779,
+  "high": 133.1875,
+  "low": 128.88322779,
+  "close": 131.43605
+ },
+ "HighWaveCandle": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Hikkake": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "HikkakeModified": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "HomingPigeon": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "IdenticalThreeCrows": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "InNeck": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "InternalBarStrength": {
+  "value": 0.33157576,
+  "is_ready": true
+ },
+ "InvertedHammer": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Kicking": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "KickingByLength": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "LadderBottom": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "LongLeggedDoji": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "LongLineCandle": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Marubozu": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "MatHold": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "MatchingLow": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "MorningDojiStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "MorningStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "OnBalanceVolume": {
+  "value": 31000.0,
+  "is_ready": true
+ },
+ "OnNeck": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Piercing": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "RickshawMan": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "RiseFallThreeMethods": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "SeparatingLines": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ShootingStar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ShortLineCandle": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "SpinningTop": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "StalledPattern": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "StickSandwich": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Takuri": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "TasukiGap": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeBlackCrows": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeInside": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeLineStrike": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeOutside": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeStarsInSouth": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ThreeWhiteSoldiers": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Thrusting": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "Tristar": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "TrueRange": {
+  "value": 3.3,
+  "is_ready": true
+ },
+ "TwoCrows": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "UniqueThreeRiver": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "UpDownGapThreeMethods": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "UpsideGapTwoCrows": {
+  "args": [],
+  "feed": "bar",
+  "value": 0.0,
+  "is_ready": true
+ },
+ "WilderAccumulativeSwingIndex": {
+  "value": 442.44808647,
+  "is_ready": true
+ },
+ "WilderSwingIndex": {
+  "value": 9.71374472,
+  "is_ready": true
+ },
+ "SimpleMovingAverage": {
+  "value": 126.2691,
+  "is_ready": true
+ },
+ "ExponentialMovingAverage": {
+  "value": 127.09374524,
+  "is_ready": true
+ },
+ "RelativeStrengthIndex": {
+  "value": 88.26315494,
+  "is_ready": true
+ },
+ "StandardDeviation": {
+  "value": 2.84508368,
+  "is_ready": true
+ },
+ "Maximum": {
+  "value": 130.9817,
+  "is_ready": true
+ },
+ "Minimum": {
+  "value": 122.4454,
+  "is_ready": true
+ },
+ "Sum": {
+  "value": 1262.691,
+  "is_ready": true
+ },
+ "Momentum": {
+  "value": 8.6814,
+  "is_ready": true
+ },
+ "MomentumPercent": {
+  "value": 7.09842903,
+  "is_ready": true
+ },
+ "RateOfChange": {
+  "value": 0.07098429,
+  "is_ready": true
+ },
+ "RateOfChangePercent": {
+  "value": 7.09842903,
+  "is_ready": true
+ },
+ "RateOfChangeRatio": {
+  "value": 1.07098429,
+  "is_ready": true
+ },
+ "LogReturn": {
+  "value": 0.06857812,
+  "is_ready": true
+ },
+ "Variance": {
+  "value": 8.09450114,
+  "is_ready": true
+ },
+ "MeanAbsoluteDeviation": {
+  "value": 2.50338,
+  "is_ready": true
+ },
+ "LinearWeightedMovingAverage": {
+  "value": 127.74748,
+  "is_ready": true
+ },
+ "TriangularMovingAverage": {
+  "value": 126.15222667,
+  "is_ready": true
+ },
+ "DoubleExponentialMovingAverage": {
+  "value": 129.7612814,
+  "is_ready": true
+ },
+ "TripleExponentialMovingAverage": {
+  "value": 130.38660153,
+  "is_ready": true
+ },
+ "HullMovingAverage": {
+  "value": 130.47304323,
+  "is_ready": true
+ },
+ "WilderMovingAverage": {
+  "value": 124.74612096,
+  "is_ready": true
+ },
+ "ZeroLagExponentialMovingAverage": {
+  "value": 130.18594336,
+  "is_ready": true
+ },
+ "ChandeMomentumOscillator": {
+  "value": 81.33788391,
+  "is_ready": true
+ },
+ "Trix": {
+  "value": 0.3722014,
+  "is_ready": true
+ },
+ "AbsolutePriceOscillator": {
+  "value": 2.50338,
+  "is_ready": true
+ },
+ "PercentagePriceOscillator": {
+  "value": 1.98257531,
+  "is_ready": true
+ },
+ "MovingAverageConvergenceDivergence": {
+  "value": 1.80228539,
+  "is_ready": true,
+  "signal": 1.51200453,
+  "fast": 128.89603063,
+  "slow": 127.09374524
+ },
+ "BollingerBands": {
+  "value": 130.9817,
+  "is_ready": true,
+  "upper": 131.95926736,
+  "middle": 126.2691,
+  "lower": 120.57893264
+ },
+ "KaufmanAdaptiveMovingAverage": {
+  "value": 129.09728588,
+  "is_ready": true
+ },
+ "KaufmanEfficiencyRatio": {
+  "value": 1.0,
+  "is_ready": true
+ },
+ "T3MovingAverage": {
+  "value": 126.3014591,
+  "is_ready": true
+ },
+ "McGinleyDynamic": {
+  "value": 123.63782341,
+  "is_ready": true
+ },
+ "DetrendedPriceOscillator": {
+  "value": -1.8117,
+  "is_ready": true
+ },
+ "LeastSquaresMovingAverage": {
+  "value": 130.70424,
+  "is_ready": true
+ },
+ "TimeSeriesForecast": {
+  "value": 131.68982667,
+  "is_ready": true
+ },
+ "RelativeMovingAverage": {
+  "value": 123.12439167,
+  "is_ready": true
+ },
+ "Momersion": {
+  "value": 90.0,
+  "is_ready": true
+ },
+ "TrueStrengthIndex": {
+  "value": 84.66230597,
+  "is_ready": true
+ },
+ "ConnorsRelativeStrengthIndex": {
+  "value": 86.44491636,
+  "is_ready": true
+ },
+ "SchaffTrendCycle": {
+  "value": 80.65769872,
+  "is_ready": true
+ },
+ "PremierStochasticOscillator": {
+  "value": 0.87695189,
+  "is_ready": true
+ },
+ "StochasticRelativeStrengthIndex": {
+  "value": 130.9817,
+  "is_ready": true,
+  "k": 94.16193313,
+  "d": 81.81635209
+ },
+ "FisherTransform": {
+  "value": 2.34719322,
+  "is_ready": true
+ },
+ "VariableIndexDynamicAverage": {
+  "value": 125.91991465,
+  "is_ready": true
+ },
+ "ArnaudLegouxMovingAverage": {
+  "value": 128.52797896,
+  "is_ready": true
+ },
+ "AverageTrueRange": {
+  "value": 2.73355182,
+  "is_ready": true
+ },
+ "NormalizedAverageTrueRange": {
+  "value": 2.08725788,
+  "is_ready": true
+ },
+ "AverageRange": {
+  "value": 2.675,
+  "is_ready": true
+ },
+ "MidPoint": {
+  "value": 126.71355,
+  "is_ready": true
+ },
+ "MidPrice": {
+  "value": 127.30165,
+  "is_ready": true
+ },
+ "WilliamsPercentR": {
+  "value": -18.01579588,
+  "is_ready": true
+ },
+ "CommodityChannelIndex": {
+  "value": 217.99734817,
+  "is_ready": true
+ },
+ "Stochastic": {
+  "value": 81.98420412,
+  "is_ready": true,
+  "k": 75.92630165,
+  "d": 76.25675603,
+  "fast": 81.98420412
+ },
+ "DonchianChannel": {
+  "value": 127.30165,
+  "is_ready": true,
+  "upper": 133.1875,
+  "lower": 121.4158
+ },
+ "KeltnerChannels": {
+  "value": 126.1241,
+  "is_ready": true,
+  "upper": 131.47682,
+  "middle": 126.1241,
+  "lower": 120.77138
+ },
+ "AverageDirectionalIndex": {
+  "value": 61.94316526,
+  "is_ready": true,
+  "pdi": 29.55418331,
+  "ndi": 3.94110005
+ },
+ "AverageDirectionalMovementIndexRating": {
+  "value": 64.8705795,
+  "is_ready": true
+ },
+ "AroonOscillator": {
+  "value": 100.0,
+  "is_ready": true,
+  "up": 100.0,
+  "down": 0.0
+ },
+ "SmoothedOnBalanceVolume": {
+  "value": 25300.0,
+  "is_ready": true
+ },
+ "AccumulationDistributionOscillator": {
+  "value": 428.77487431,
+  "is_ready": true
+ },
+ "ChaikinMoneyFlow": {
+  "value": 0.09989706,
+  "is_ready": true
+ },
+ "MoneyFlowIndex": {
+  "value": 63.81127455,
+  "is_ready": true
+ },
+ "VolumeWeightedAveragePriceIndicator": {
+  "value": 126.05762461,
+  "is_ready": true
+ },
+ "VolumeWeightedMovingAverage": {
+  "value": 126.23456535,
+  "is_ready": true
+ },
+ "ParabolicStopAndReverse": {
+  "value": 123.99245528,
+  "is_ready": true
+ },
+ "SuperTrend": {
+  "value": 123.33684453,
+  "is_ready": true
+ },
+ "Vortex": {
+  "value": 0.99482132,
+  "is_ready": true,
+  "plus": 1.33366587,
+  "minus": 0.65597677
+ },
+ "ChoppinessIndex": {
+  "value": 42.67941223,
+  "is_ready": true
+ },
+ "MassIndex": {
+  "value": 25.0134845,
+  "is_ready": true
+ },
+ "EaseOfMovementValue": {
+  "value": 19.78212506,
+  "is_ready": true
+ },
+ "ForceIndex": {
+  "value": 1085.1583891,
+  "is_ready": true
+ },
+ "KlingerVolumeOscillator": {
+  "value": 43816.89225811,
+  "is_ready": true
+ },
+ "UltimateOscillator": {
+  "value": 54.96422761,
+  "is_ready": true
+ },
+ "DeMarkerIndicator": {
+  "value": 0.78496729,
+  "is_ready": true
+ },
+ "AccelerationBands": {
+  "value": 124.926925,
+  "is_ready": true,
+  "upper": 131.51789965,
+  "middle": 124.926925,
+  "lower": 118.20539965
+ },
+ "IchimokuKinkoHyo": {
+  "value": 130.9817,
+  "is_ready": false,
+  "tenkan": 127.30165,
+  "kijun": 122.7785,
+  "senkou_a": 111.7498,
+  "senkou_b": 112.5446
+ },
+ "AwesomeOscillator": {
+  "value": 7.98581118,
+  "is_ready": true
+ },
+ "RogersSatchellVolatility": {
+  "value": 0.01531349,
+  "is_ready": true
+ },
+ "RelativeDailyVolume": {
+  "value": 0.0,
+  "is_ready": false
+ },
+ "AugenPriceSpike": {
+  "value": 1.41585114,
+  "is_ready": true
+ },
+ "HurstExponent": {
+  "value": 0.89174461,
+  "is_ready": true
+ },
+ "FractalAdaptiveMovingAverage": {
+  "value": 125.24335833,
+  "is_ready": true
+ },
+ "PivotPointsHighLow": {
+  "value": 0.0,
+  "is_ready": true
+ },
+ "ZigZag": {
+  "value": 133.1875,
+  "is_ready": true
+ },
+ "DerivativeOscillator": {
+  "value": 5.31862579,
+  "is_ready": true
+ },
+ "KnowSureThing": {
+  "value": 39.96107673,
+  "is_ready": true
+ },
+ "RegressionChannel": {
+  "value": 130.70424,
+  "is_ready": true,
+  "upper": 136.39440736,
+  "lower": 125.01407264
+ }
+}

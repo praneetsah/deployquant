@@ -1,0 +1,26 @@
+{
+  "ir_version": "0.2",
+  "meta": { "name": "ETF Momentum Rotation", "version": 1 },
+  "params": { "LOOKBACK": 60 },
+  "universe": { "static": ["SPY", "QQQ", "IWM", "TLT"] },
+  "rules": [
+    {
+      "id": "daily-rotate",
+      "trigger": { "type": "before_close", "minutes": 1, "days": "all" },
+      "action": {
+        "type": "set_weights",
+        "weights": {
+          "best": {
+            "of": [
+              { "asset": "SPY" }, { "asset": "QQQ" },
+              { "asset": "IWM" }, { "asset": "TLT" }
+            ],
+            "by": { "metric": "cum_return", "window": { "param": "LOOKBACK" } },
+            "order": "top",
+            "n": 1
+          }
+        }
+      }
+    }
+  ]
+}

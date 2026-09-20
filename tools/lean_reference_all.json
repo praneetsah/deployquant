@@ -1,0 +1,1061 @@
+{
+ "bars": [
+  [
+   "2024-01-02T09:31:00",
+   100.0,
+   101.0,
+   99.0,
+   100.0,
+   1000
+  ],
+  [
+   "2024-01-02T09:32:00",
+   101.48158409038845,
+   102.73158409038845,
+   100.28158409038845,
+   101.8411532443416,
+   1100
+  ],
+  [
+   "2024-01-02T09:33:00",
+   102.8551094092092,
+   104.3551094092092,
+   101.4551094092092,
+   103.48621264781512,
+   1200
+  ],
+  [
+   "2024-01-02T09:34:00",
+   104.0244129544237,
+   105.0244129544237,
+   102.4244129544237,
+   104.77253419437673,
+   1300
+  ],
+  [
+   "2024-01-02T09:35:00",
+   104.91581370408994,
+   106.16581370408994,
+   103.11581370408994,
+   105.5977867742092,
+   1400
+  ],
+  [
+   "2024-01-02T09:36:00",
+   105.4862238732553,
+   106.9862238732553,
+   104.4862238732553,
+   105.93507798133327,
+   1500
+  ],
+  [
+   "2024-01-02T09:37:00",
+   105.72789228047705,
+   106.72789228047705,
+   104.52789228047705,
+   105.83373228652195,
+   1600
+  ],
+  [
+   "2024-01-02T09:38:00",
+   105.66925764521497,
+   106.91925764521497,
+   104.26925764521496,
+   105.40617022444775,
+   1000
+  ],
+  [
+   "2024-01-02T09:39:00",
+   105.37181787990744,
+   106.87181787990744,
+   103.77181787990745,
+   104.8042160084265,
+   1100
+  ],
+  [
+   "2024-01-02T09:40:00",
+   104.9233600241796,
+   105.9233600241796,
+   103.1233600241796,
+   104.19021243593077,
+   1200
+  ],
+  [
+   "2024-01-02T09:41:00",
+   104.42829611137354,
+   105.67829611137354,
+   103.42829611137354,
+   103.70910290537618,
+   1300
+  ],
+  [
+   "2024-01-02T09:42:00",
+   103.99616885423497,
+   105.49616885423497,
+   102.79616885423496,
+   103.46701361005717,
+   1400
+  ],
+  [
+   "2024-01-02T09:43:00",
+   103.72959251407622,
+   104.72959251407622,
+   102.32959251407621,
+   103.52003089042702,
+   1500
+  ],
+  [
+   "2024-01-02T09:44:00",
+   103.71295649618772,
+   104.96295649618772,
+   102.11295649618772,
+   103.87429648725357,
+   1600
+  ],
+  [
+   "2024-01-02T09:45:00",
+   104.00313524870622,
+   105.50313524870622,
+   102.20313524870622,
+   104.4958751977453,
+   1000
+  ],
+  [
+   "2024-01-02T09:46:00",
+   104.62322717601059,
+   105.62322717601059,
+   103.62322717601059,
+   105.32672715859164,
+   1100
+  ],
+  [
+   "2024-01-02T09:47:00",
+   105.56001182529727,
+   106.81001182529727,
+   104.36001182529726,
+   106.3020305102648,
+   1200
+  ],
+  [
+   "2024-01-02T09:48:00",
+   106.76540527476708,
+   108.26540527476708,
+   105.36540527476707,
+   107.3642706092347,
+   1300
+  ],
+  [
+   "2024-01-02T09:49:00",
+   108.16175350540323,
+   109.16175350540323,
+   106.56175350540323,
+   108.47084236933455,
+   1400
+  ],
+  [
+   "2024-01-02T09:50:00",
+   109.65038102964652,
+   110.90038102964652,
+   107.85038102964653,
+   109.59401768930017,
+   1500
+  ],
+  [
+   "2024-01-02T09:51:00",
+   111.12245369171366,
+   112.62245369171366,
+   110.12245369171366,
+   110.71443785854663,
+   1600
+  ],
+  [
+   "2024-01-02T09:52:00",
+   112.47095979615636,
+   113.47095979615636,
+   111.27095979615636,
+   111.8111879761776,
+   1000
+  ],
+  [
+   "2024-01-02T09:53:00",
+   113.60249060885641,
+   114.85249060885641,
+   112.20249060885641,
+   112.85249795394338,
+   1100
+  ],
+  [
+   "2024-01-02T09:54:00",
+   114.44752336095912,
+   115.94752336095912,
+   112.84752336095913,
+   113.7909342299428,
+   1200
+  ],
+  [
+   "2024-01-02T09:55:00",
+   114.96807473987015,
+   115.96807473987015,
+   113.16807473987015,
+   114.56564505136983,
+   1300
+  ],
+  [
+   "2024-01-02T09:56:00",
+   115.16188232428408,
+   116.41188232428408,
+   114.16188232428408,
+   115.11214090127068,
+   1400
+  ],
+  [
+   "2024-01-02T09:57:00",
+   115.06265364533918,
+   116.56265364533918,
+   113.86265364533918,
+   115.37777892295917,
+   1500
+  ],
+  [
+   "2024-01-02T09:58:00",
+   114.73635545572527,
+   115.73635545572527,
+   113.33635545572527,
+   115.33919377563899,
+   1600
+  ],
+  [
+   "2024-01-02T09:59:00",
+   114.27395170666425,
+   115.52395170666425,
+   112.67395170666425,
+   115.0169072234354,
+   1000
+  ],
+  [
+   "2024-01-02T10:00:00",
+   113.78138968060905,
+   115.28138968060905,
+   111.98138968060906,
+   114.48256097225257,
+   1100
+  ],
+  [
+   "2024-01-02T10:01:00",
+   113.36793666733189,
+   114.36793666733189,
+   112.36793666733189,
+   113.85565254744972,
+   1200
+  ],
+  [
+   "2024-01-02T10:02:00",
+   113.13415115333032,
+   114.38415115333032,
+   111.93415115333032,
+   113.28900176478366,
+   1300
+  ],
+  [
+   "2024-01-02T10:03:00",
+   113.16081272948567,
+   114.66081272948567,
+   111.76081272948566,
+   112.94488524198687,
+   1400
+  ],
+  [
+   "2024-01-02T10:04:00",
+   113.50002938034788,
+   114.50002938034788,
+   111.90002938034789,
+   112.96619037357104,
+   1500
+  ],
+  [
+   "2024-01-02T10:05:00",
+   114.16950111895355,
+   115.41950111895355,
+   112.36950111895355,
+   113.44845300004388,
+   1600
+  ],
+  [
+   "2024-01-02T10:06:00",
+   115.15057146129023,
+   116.65057146129023,
+   114.15057146129023,
+   114.4188519571891,
+   1000
+  ],
+  [
+   "2024-01-02T10:07:00",
+   116.3902812459987,
+   117.3902812459987,
+   115.19028124599869,
+   115.82704081091994,
+   1100
+  ],
+  [
+   "2024-01-02T10:08:00",
+   117.80719870229649,
+   119.05719870229649,
+   116.40719870229648,
+   117.55033823844428,
+   1200
+  ],
+  [
+   "2024-01-02T10:09:00",
+   119.30038395663972,
+   120.80038395663972,
+   117.70038395663973,
+   119.41279186388694,
+   1300
+  ],
+  [
+   "2024-01-02T10:10:00",
+   120.76050111047992,
+   121.76050111047992,
+   118.96050111047992,
+   121.21465601276962,
+   1400
+  ],
+  [
+   "2024-01-02T10:11:00",
+   122.08185460373117,
+   123.33185460373117,
+   121.08185460373117,
+   122.76656354177689,
+   1500
+  ],
+  [
+   "2024-01-02T10:12:00",
+   123.17402482754625,
+   124.67402482754625,
+   121.97402482754624,
+   123.92164717325535,
+   1600
+  ],
+  [
+   "2024-01-02T10:13:00",
+   123.97182206708462,
+   124.97182206708462,
+   122.57182206708461,
+   124.59931379598666,
+   1000
+  ],
+  [
+   "2024-01-02T10:14:00",
+   124.4424629834598,
+   125.6924629834598,
+   122.84246298345981,
+   124.79619223578045,
+   1100
+  ],
+  [
+   "2024-01-02T10:15:00",
+   124.58917960390406,
+   126.08917960390406,
+   122.78917960390406,
+   124.58254112193626,
+   1200
+  ],
+  [
+   "2024-01-02T10:16:00",
+   124.45086352047134,
+   125.45086352047134,
+   123.45086352047134,
+   124.08548263612596,
+   1300
+  ],
+  [
+   "2024-01-02T10:17:00",
+   124.0977844660588,
+   125.3477844660588,
+   122.8977844660588,
+   123.46311916292741,
+   1400
+  ],
+  [
+   "2024-01-02T10:18:00",
+   123.623854593046,
+   125.123854593046,
+   122.223854593046,
+   122.87529307206145,
+   1500
+  ],
+  [
+   "2024-01-02T10:19:00",
+   123.1362900500048,
+   124.1362900500048,
+   121.53629005000481,
+   122.45710627849984,
+   1600
+  ],
+  [
+   "2024-01-02T10:20:00",
+   122.74380797325577,
+   123.99380797325577,
+   120.94380797325577,
+   122.30028982585692,
+   1000
+  ],
+  [
+   "2024-01-02T10:21:00",
+   122.54465824052616,
+   124.04465824052616,
+   121.54465824052616,
+   122.44539442795283,
+   1100
+  ],
+  [
+   "2024-01-02T10:22:00",
+   122.61580752436133,
+   123.61580752436133,
+   121.41580752436133,
+   122.88510128987795,
+   1200
+  ],
+  [
+   "2024-01-02T10:23:00",
+   123.00446633074691,
+   124.25446633074691,
+   121.6044663307469,
+   123.5763851686066,
+   1300
+  ],
+  [
+   "2024-01-02T10:24:00",
+   123.72289177827791,
+   125.22289177827791,
+   122.12289177827792,
+   124.45741001060586,
+   1400
+  ],
+  [
+   "2024-01-02T10:25:00",
+   124.74703825968497,
+   125.74703825968497,
+   122.94703825968497,
+   125.46432020598834,
+   1500
+  ],
+  [
+   "2024-01-02T10:26:00",
+   126.01920452913804,
+   127.26920452913804,
+   125.01920452913804,
+   126.54363455287935,
+   1600
+  ],
+  [
+   "2024-01-02T10:27:00",
+   127.4543858077902,
+   128.9543858077902,
+   126.2543858077902,
+   127.65756514902111,
+   1000
+  ],
+  [
+   "2024-01-02T10:28:00",
+   128.94963162898887,
+   129.94963162898887,
+   127.54963162898886,
+   128.78181489884878,
+   1100
+  ],
+  [
+   "2024-01-02T10:29:00",
+   130.39537925440146,
+   131.64537925440146,
+   128.79537925440147,
+   129.89765384124175,
+   1200
+  ],
+  [
+   "2024-01-02T10:30:00",
+   131.68751500939143,
+   133.18751500939143,
+   129.88751500939142,
+   130.98174145313422,
+   1300
+  ]
+ ],
+ "values": {
+  "AbandonedBaby": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "AccumulationDistribution": {
+   "args": [],
+   "feed": "bar",
+   "value": 6123.10665133,
+   "is_ready": true
+  },
+  "AdvanceBlock": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "BalanceOfPower": {
+   "args": [],
+   "feed": "bar",
+   "value": -0.21387879,
+   "is_ready": true
+  },
+  "BeltHold": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Breakaway": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ClosingMarubozu": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ConcealedBabySwallow": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "CoppockCurve": {
+   "args": [],
+   "feed": "bar",
+   "value": 6.98255505,
+   "is_ready": true
+  },
+  "Counterattack": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "DarkCloudCover": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Doji": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "DojiStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "DragonflyDoji": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Engulfing": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "EveningDojiStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "EveningStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "GapSideBySideWhite": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "GravestoneDoji": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Hammer": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "HangingMan": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Harami": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "HaramiCross": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "HeikinAshi": {
+   "args": [],
+   "feed": "bar",
+   "value": 131.43605,
+   "is_ready": true
+  },
+  "HighWaveCandle": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Hikkake": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "HikkakeModified": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "HomingPigeon": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "IdenticalThreeCrows": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "InNeck": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "InternalBarStrength": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.33157576,
+   "is_ready": true
+  },
+  "InvertedHammer": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Kicking": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "KickingByLength": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "LadderBottom": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "LongLeggedDoji": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "LongLineCandle": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Marubozu": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "MatHold": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "MatchingLow": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "MorningDojiStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "MorningStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "OnBalanceVolume": {
+   "args": [],
+   "feed": "bar",
+   "value": 31000.0,
+   "is_ready": true
+  },
+  "OnNeck": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Piercing": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "RickshawMan": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "RiseFallThreeMethods": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "SeparatingLines": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ShootingStar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ShortLineCandle": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "SpinningTop": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "StalledPattern": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "StickSandwich": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Takuri": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "TasukiGap": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeBlackCrows": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeInside": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeLineStrike": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeOutside": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeStarsInSouth": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "ThreeWhiteSoldiers": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Thrusting": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "Tristar": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "TrueRange": {
+   "args": [],
+   "feed": "bar",
+   "value": 3.3,
+   "is_ready": true
+  },
+  "TwoCrows": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "UniqueThreeRiver": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "UpDownGapThreeMethods": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "UpsideGapTwoCrows": {
+   "args": [],
+   "feed": "bar",
+   "value": 0.0,
+   "is_ready": true
+  },
+  "WilderAccumulativeSwingIndex": {
+   "args": [
+    2.0
+   ],
+   "feed": "bar",
+   "value": 663.67212971,
+   "is_ready": true
+  },
+  "WilderSwingIndex": {
+   "args": [
+    2.0
+   ],
+   "feed": "bar",
+   "value": 14.57061707,
+   "is_ready": true
+  }
+ },
+ "errors": {
+  "AbsolutePriceOscillator": "no constructor shape matched",
+  "AccelerationBands": "no constructor shape matched",
+  "AccumulationDistributionOscillator": "no constructor shape matched",
+  "AdvanceDeclineDifference": "no constructor shape matched",
+  "AdvanceDeclineRatio": "no constructor shape matched",
+  "AdvanceDeclineVolumeRatio": "no constructor shape matched",
+  "Alpha": "no constructor shape matched",
+  "ArmsIndex": "no constructor shape matched",
+  "ArnaudLegouxMovingAverage": "no constructor shape matched",
+  "AroonOscillator": "no constructor shape matched",
+  "AugenPriceSpike": "no constructor shape matched",
+  "AutoRegressiveIntegratedMovingAverage": "no constructor shape matched",
+  "AverageDirectionalIndex": "no constructor shape matched",
+  "AverageDirectionalMovementIndexRating": "no constructor shape matched",
+  "AverageRange": "no constructor shape matched",
+  "AverageTrueRange": "no constructor shape matched",
+  "AwesomeOscillator": "no constructor shape matched",
+  "Beta": "no constructor shape matched",
+  "BollingerBands": "no constructor shape matched",
+  "CandleColor": "neither bar nor value updates were accepted",
+  "CandleRangeType": "neither bar nor value updates were accepted",
+  "CandleSetting": "no constructor shape matched",
+  "CandleSettingType": "neither bar nor value updates were accepted",
+  "ChaikinMoneyFlow": "no constructor shape matched",
+  "ChaikinOscillator": "no constructor shape matched",
+  "ChandeKrollStop": "no constructor shape matched",
+  "ChandeMomentumOscillator": "no constructor shape matched",
+  "ChoppinessIndex": "no constructor shape matched",
+  "CommodityChannelIndex": "no constructor shape matched",
+  "CompositeIndicator": "no constructor shape matched",
+  "ConnorsRelativeStrengthIndex": "no constructor shape matched",
+  "Correlation": "no constructor shape matched",
+  "CorrelationType": "neither bar nor value updates were accepted",
+  "Covariance": "no constructor shape matched",
+  "DeMarkerIndicator": "no constructor shape matched",
+  "Delay": "no constructor shape matched",
+  "Delta": "no constructor shape matched",
+  "DerivativeOscillator": "no constructor shape matched",
+  "DetrendedPriceOscillator": "no constructor shape matched",
+  "DonchianChannel": "no constructor shape matched",
+  "DoubleExponentialMovingAverage": "no constructor shape matched",
+  "EaseOfMovementValue": "no constructor shape matched",
+  "ExponentialMovingAverage": "no constructor shape matched",
+  "FilteredIdentity": "no constructor shape matched",
+  "FisherTransform": "no constructor shape matched",
+  "ForceIndex": "no constructor shape matched",
+  "FractalAdaptiveMovingAverage": "no constructor shape matched",
+  "Gamma": "no constructor shape matched",
+  "GreeksIndicators": "no constructor shape matched",
+  "HilbertTransform": "no constructor shape matched",
+  "HullMovingAverage": "no constructor shape matched",
+  "HurstExponent": "no constructor shape matched",
+  "IchimokuKinkoHyo": "no constructor shape matched",
+  "Identity": "no constructor shape matched",
+  "ImpliedVolatility": "no constructor shape matched",
+  "IndicatorBasedOptionPriceModel": "no constructor shape matched",
+  "IndicatorBasedOptionPriceModelProvider": "no constructor shape matched",
+  "IndicatorResult": "no constructor shape matched",
+  "IndicatorStatus": "neither bar nor value updates were accepted",
+  "IntradayVwap": "no constructor shape matched",
+  "KaufmanAdaptiveMovingAverage": "no constructor shape matched",
+  "KaufmanEfficiencyRatio": "no constructor shape matched",
+  "KeltnerChannels": "no constructor shape matched",
+  "KlingerVolumeOscillator": "no constructor shape matched",
+  "KnowSureThing": "no constructor shape matched",
+  "LeastSquaresMovingAverage": "no constructor shape matched",
+  "LinearWeightedMovingAverage": "no constructor shape matched",
+  "LogReturn": "no constructor shape matched",
+  "MassIndex": "no constructor shape matched",
+  "Maximum": "no constructor shape matched",
+  "McClellanOscillator": "no constructor shape matched",
+  "McClellanSummationIndex": "no constructor shape matched",
+  "McGinleyDynamic": "no constructor shape matched",
+  "MeanAbsoluteDeviation": "no constructor shape matched",
+  "MesaAdaptiveMovingAverage": "no constructor shape matched",
+  "MidPoint": "no constructor shape matched",
+  "MidPrice": "no constructor shape matched",
+  "Minimum": "no constructor shape matched",
+  "Momentum": "no constructor shape matched",
+  "MomentumPercent": "no constructor shape matched",
+  "Momersion": "no constructor shape matched",
+  "MomersionIndicator": "no constructor shape matched",
+  "MoneyFlowIndex": "no constructor shape matched",
+  "MovingAverageConvergenceDivergence": "no constructor shape matched",
+  "MovingAverageType": "neither bar nor value updates were accepted",
+  "NewHighsNewLows": "no constructor shape matched",
+  "NewHighsNewLowsVolume": "no constructor shape matched",
+  "NormalizedAverageTrueRange": "no constructor shape matched",
+  "OptionGreekIndicatorsHelper": "neither bar nor value updates were accepted",
+  "ParabolicStopAndReverse": "no constructor shape matched",
+  "ParabolicStopAndReverseExtended": "no constructor shape matched",
+  "PercentagePriceOscillator": "no constructor shape matched",
+  "PivotPoint": "no constructor shape matched",
+  "PivotPointType": "neither bar nor value updates were accepted",
+  "PivotPointsEventArgs": "no constructor shape matched",
+  "PivotPointsHighLow": "no constructor shape matched",
+  "PremierStochasticOscillator": "no constructor shape matched",
+  "PythonIndicator": "neither bar nor value updates were accepted",
+  "RateOfChange": "no constructor shape matched",
+  "RateOfChangePercent": "no constructor shape matched",
+  "RateOfChangeRatio": "no constructor shape matched",
+  "RegressionChannel": "no constructor shape matched",
+  "RelativeDailyVolume": "no constructor shape matched",
+  "RelativeMovingAverage": "no constructor shape matched",
+  "RelativeStrengthIndex": "no constructor shape matched",
+  "RelativeVigorIndex": "no constructor shape matched",
+  "RelativeVigorIndexSignal": "no constructor shape matched",
+  "ResetCompositeIndicator": "no constructor shape matched",
+  "Rho": "no constructor shape matched",
+  "RogersSatchellVolatility": "no constructor shape matched",
+  "SchaffTrendCycle": "no constructor shape matched",
+  "SharpeRatio": "no constructor shape matched",
+  "SimpleMovingAverage": "no constructor shape matched",
+  "SmoothedOnBalanceVolume": "no constructor shape matched",
+  "SortinoRatio": "no constructor shape matched",
+  "SqueezeMomentum": "no constructor shape matched",
+  "StandardDeviation": "no constructor shape matched",
+  "Stochastic": "no constructor shape matched",
+  "StochasticRelativeStrengthIndex": "no constructor shape matched",
+  "Sum": "no constructor shape matched",
+  "SuperTrend": "no constructor shape matched",
+  "SwissArmyKnife": "no constructor shape matched",
+  "SwissArmyKnifeTool": "neither bar nor value updates were accepted",
+  "T3MovingAverage": "no constructor shape matched",
+  "TargetDownsideDeviation": "no constructor shape matched",
+  "Theta": "no constructor shape matched",
+  "TimeProfile": "no constructor shape matched",
+  "TimeSeriesForecast": "no constructor shape matched",
+  "TomDemarkSequential": "no constructor shape matched",
+  "TomDemarkSequentialPhase": "neither bar nor value updates were accepted",
+  "TriangularMovingAverage": "no constructor shape matched",
+  "TripleExponentialMovingAverage": "no constructor shape matched",
+  "Trix": "no constructor shape matched",
+  "TrueStrengthIndex": "no constructor shape matched",
+  "UltimateOscillator": "no constructor shape matched",
+  "ValueAtRisk": "no constructor shape matched",
+  "VariableIndexDynamicAverage": "no constructor shape matched",
+  "Variance": "no constructor shape matched",
+  "Vega": "no constructor shape matched",
+  "VolumeProfile": "no constructor shape matched",
+  "VolumeWeightedAveragePriceIndicator": "no constructor shape matched",
+  "VolumeWeightedMovingAverage": "no constructor shape matched",
+  "Vortex": "no constructor shape matched",
+  "WaveTrendOscillator": "no constructor shape matched",
+  "WilderMovingAverage": "no constructor shape matched",
+  "WilliamsPercentR": "no constructor shape matched",
+  "WindowIdentity": "no constructor shape matched",
+  "ZeroLagExponentialMovingAverage": "no constructor shape matched",
+  "ZigZag": "no constructor shape matched"
+ }
+}

@@ -1,0 +1,27 @@
+{
+  "ir_version": "0.1",
+  "meta": { "name": "RSI Buy Low, Sell High", "version": 1 },
+  "params": { "RSI_WINDOW": 14, "BUY_BELOW": 30, "SELL_ABOVE": 70, "SIZE": 0.98 },
+  "universe": { "static": ["SPY"] },
+  "rules": [
+    {
+      "id": "buy-oversold",
+      "trigger": { "type": "session_open", "days": "all" },
+      "when": { "all": [
+        { "not": { "pos": "invested" } },
+        { "lt": [ { "ind": "rsi", "window": { "param": "RSI_WINDOW" } },
+                  { "param": "BUY_BELOW" } ] } ] },
+      "action": { "type": "market_order", "side": "buy",
+                  "size": { "pct_equity": { "param": "SIZE" } } }
+    },
+    {
+      "id": "sell-overbought",
+      "trigger": { "type": "session_open", "days": "all" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "gt": [ { "ind": "rsi", "window": { "param": "RSI_WINDOW" } },
+                  { "param": "SELL_ABOVE" } ] } ] },
+      "action": { "type": "liquidate" }
+    }
+  ]
+}

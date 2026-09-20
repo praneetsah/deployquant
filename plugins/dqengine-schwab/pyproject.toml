@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deployquant-schwab"
+version = "0.1.0"
+description = "Charles Schwab broker adapter for DQengine (pip install deployquant)."
+readme = "README.md"
+# matches the engine (Ruling 16): a plugin never demands a newer Python than dqengine itself
+requires-python = ">=3.11"
+license = { text = "PolyForm-Shield-1.0.0" }
+# plain urllib against the Trader API and the OAuth token endpoint: no
+# vendor SDK, so no optional extra
+dependencies = ["deployquant>=0.1.0"]
+
+[project.urls]
+Homepage = "https://deployquant.com"
+Source = "https://github.com/praneetsah/deployquant"
+Issues = "https://github.com/praneetsah/deployquant/issues"
+
+[project.entry-points."dqengine.brokers"]
+schwab = "dqengine_schwab:SchwabAdapter"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dqengine_schwab*"]
+
+# every plugin's suite is tests/test_plugin.py; importlib mode lets pytest
+# collect two same-named files in one session (dqengine-webull + dqengine-schwab)
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"

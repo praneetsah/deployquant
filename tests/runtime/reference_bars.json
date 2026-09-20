@@ -1,0 +1,8 @@
+{
+  "_doc": "sha256 of the CSV inside <symbol>/<yyyymmdd>_trade.zip for the bar set the pinned results were produced on (tests/runtime/conftest_helpers.py: reference_bars)",
+  "sentinels": {
+    "tqqq/20210104": "41193aec4567db5df2c81ce8933927bfeb824e5375498ec639a21dbc3870dc86",
+    "spy/20210104": "db57be71801ee5173216f0a3a21a547c676da703936e5b5e598ce466f6191312",
+    "qqq/20210104": "1483ec41cc81dec0f00615ac5f3595fcf38357a42e1e9da06b1ebcf47be19a13"
+  }
+}

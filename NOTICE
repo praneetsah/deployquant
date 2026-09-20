@@ -1,0 +1,21 @@
+dqengine
+Copyright 2026 Praneet Sah
+
+This product includes software developed at QuantConnect Corporation
+(https://www.quantconnect.com/) as part of the LEAN Algorithmic Trading
+Engine, licensed under the Apache License, Version 2.0. LEAN is
+Copyright 2014-present QuantConnect Corporation. Parts of the
+dqengine.runtime package — the algorithm surface (QCAlgorithm, Securities,
+Portfolio, Schedule), indicator definitions, order/fill semantics and the
+session calendar — derive from or are modelled on LEAN so that the same
+algorithm file produces the same answer.
+
+Those LEAN-derived portions remain available under the Apache License,
+Version 2.0; a copy is in LICENSES/Apache-2.0.txt and at
+http://www.apache.org/licenses/LICENSE-2.0
+
+dqengine as a whole is licensed under the PolyForm Shield License 1.0.0.
+See LICENSE (https://polyformproject.org/licenses/shield/1.0.0).
+
+Required Notice: Copyright 2026 Praneet Sah (https://github.com/praneetsah/deployquant)
+Licensor Line of Business: DeployQuant, a hosted platform for building, backtesting and running algorithmic trading strategies (https://deployquant.com)

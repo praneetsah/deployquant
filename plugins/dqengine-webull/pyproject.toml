@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deployquant-webull"
+version = "0.1.0"
+description = "Webull broker adapter for DQengine (pip install deployquant)."
+readme = "README.md"
+# matches the engine (Ruling 16): a plugin never demands a newer Python than dqengine itself
+requires-python = ">=3.11"
+license = { text = "PolyForm-Shield-1.0.0" }
+dependencies = ["deployquant>=0.1.0"]
+
+[project.optional-dependencies]
+# The official SDK pins grpcio==1.51.1 (no py3.12 wheel) and forgets to
+# declare webull-python-sdk-mdata, which webullsdktrade.api imports. Install
+# with `--no-deps` and these pins (the recipe in this plugin's README)
+# -- the adapter imports the SDK lazily so the plugin installs without it.
+sdk = ["webull-python-sdk-core==0.1.18", "webull-python-sdk-mdata==0.1.18",
+       "webull-python-sdk-trade==0.1.18", "webull-python-sdk-trade-events-core==0.1.18",
+       "jmespath==1.1.0", "cachetools==5.2.0", "grpcio"]
+
+[project.urls]
+Homepage = "https://deployquant.com"
+Source = "https://github.com/praneetsah/deployquant"
+Issues = "https://github.com/praneetsah/deployquant/issues"
+
+[project.entry-points."dqengine.brokers"]
+webull = "dqengine_webull:WebullAdapter"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dqengine_webull*"]
+
+# every plugin's suite is tests/test_plugin.py; importlib mode lets pytest
+# collect two same-named files in one session (dqengine-webull + dqengine-schwab)
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"

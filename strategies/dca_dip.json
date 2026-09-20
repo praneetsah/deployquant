@@ -1,0 +1,91 @@
+{
+  "ir_version": "0.1",
+  "meta": {
+    "name": "Weekly DCA + Dip Buyer",
+    "version": 1
+  },
+  "params": {
+    "WEEKLY_DOLLARS": 250,
+    "DIP_DD": -0.15,
+    "DIP_DOLLARS": 500,
+    "DD_WINDOW": 20
+  },
+  "universe": {
+    "static": [
+      "TQQQ"
+    ]
+  },
+  "rules": [
+    {
+      "id": "weekly-buy",
+      "trigger": {
+        "type": "session_open",
+        "days": "first_of_week"
+      },
+      "guard": {
+        "once_per": "week"
+      },
+      "when": {
+        "gt": [
+          {
+            "sleeve": "cash"
+          },
+          50
+        ]
+      },
+      "action": {
+        "type": "market_order",
+        "side": "buy",
+        "size": {
+          "dollars": {
+            "param": "WEEKLY_DOLLARS"
+          }
+        }
+      }
+    },
+    {
+      "id": "dip-buy",
+      "trigger": {
+        "type": "session_open",
+        "days": "all"
+      },
+      "guard": {
+        "once_per": "month"
+      },
+      "when": {
+        "all": [
+          {
+            "gt": [
+              {
+                "sleeve": "cash"
+              },
+              150
+            ]
+          },
+          {
+            "lte": [
+              {
+                "ind": "drawdown",
+                "window": {
+                  "param": "DD_WINDOW"
+                }
+              },
+              {
+                "param": "DIP_DD"
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "type": "market_order",
+        "side": "buy",
+        "size": {
+          "dollars": {
+            "param": "DIP_DOLLARS"
+          }
+        }
+      }
+    }
+  ]
+}

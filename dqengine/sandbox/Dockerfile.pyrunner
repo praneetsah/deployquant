@@ -1,0 +1,32 @@
+# Sandbox runner image for Python (LEAN-style) strategies.
+#
+# Prod build (amd64, exact LEAN-cloud python environment), context = repo root
+# (the sandbox service builds it from /srv/sandbox-context, where
+# Dockerfile.pyrunner_svc bakes this file at the root and the distribution
+# under platform/engine -- the same shape):
+#   docker build -f platform/engine/dqengine/sandbox/Dockerfile.pyrunner -t pyrunner:latest .
+# Local dev on a Mac that already has the LEAN rig image (same environment):
+#   docker build -f platform/engine/dqengine/sandbox/Dockerfile.pyrunner \
+#     --build-arg BASE_IMAGE=quantconnect/lean:latest -t pyrunner:dev .
+#
+# The container is always launched by dqengine.sandbox.pyrunner with:
+#   --network none --cpus=N --memory=Ng --pids-limit=256 --read-only
+#   --tmpfs /tmp -v <workdir>:/work -v <bars>:/data:ro
+# Entry contract: see platform/engine/dqengine/runtime/sandbox_entry.py (installed
+# into site-packages below; /runtime is only the working directory now).
+ARG BASE_IMAGE=quantconnect/lean:foundation
+FROM ${BASE_IMAGE}
+
+RUN useradd -m -u 1500 -s /usr/sbin/nologin runner || true
+
+# install the open distribution (numpy/pandas already in the base image)
+COPY platform/engine /tmp/engine
+RUN pip install --no-cache-dir --no-deps /tmp/engine && rm -rf /tmp/engine
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN mkdir -p /runtime
+USER runner
+WORKDIR /runtime
+ENTRYPOINT ["python", "-m", "dqengine.runtime.sandbox_entry", "/work"]

@@ -1,0 +1,76 @@
+{
+ "ChandeKrollStop": {
+  "value": 130.9817,
+  "is_ready": true,
+  "feed": "bar",
+  "ShortStop": 127.62899745,
+  "LongStop": 126.1400869
+ },
+ "ChaikinOscillator": {
+  "value": 508.8764212,
+  "is_ready": true,
+  "feed": "bar"
+ },
+ "HilbertTransform": {
+  "value": 130.9817,
+  "is_ready": true,
+  "feed": "value"
+ },
+ "MesaAdaptiveMovingAverage": {
+  "value": 126.66394669,
+  "is_ready": true,
+  "feed": "bar"
+ },
+ "RelativeVigorIndex": {
+  "value": 0.03181381,
+  "is_ready": true,
+  "feed": "bar",
+  "Signal": 0.04647109
+ },
+ "SqueezeMomentum": {
+  "value": -1.0,
+  "is_ready": true,
+  "feed": "bar"
+ },
+ "WaveTrendOscillator": {
+  "value": 75.91189055,
+  "is_ready": true,
+  "feed": "bar",
+  "Signal": 70.90529276
+ },
+ "SchaffTrendCycle": {
+  "value": 67.97747928,
+  "is_ready": true,
+  "feed": "value"
+ },
+ "ZigZag": {
+  "value": 133.1875,
+  "is_ready": true,
+  "feed": "bar"
+ },
+ "PivotPointsHighLow": {
+  "value": 0.0,
+  "is_ready": true,
+  "feed": "bar"
+ },
+ "IchimokuKinkoHyo": {
+  "value": 130.9817,
+  "is_ready": false,
+  "feed": "bar",
+  "Tenkan": 127.30165,
+  "Kijun": 122.7785,
+  "SenkouA": 111.7498,
+  "SenkouB": 112.5446
+ },
+ "RelativeMovingAverage": {
+  "value": 123.12439167,
+  "is_ready": true,
+  "feed": "value"
+ },
+ "KlingerVolumeOscillator": {
+  "value": 18554.42224419,
+  "is_ready": true,
+  "feed": "bar",
+  "Signal": 7121.19212332
+ }
+}

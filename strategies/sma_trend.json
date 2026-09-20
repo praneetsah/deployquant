@@ -1,0 +1,27 @@
+{
+  "ir_version": "0.1",
+  "meta": { "name": "SMA Trend Filter", "version": 1 },
+  "params": { "FAST": 10, "SLOW": 50, "SIZE": 0.98 },
+  "universe": { "static": ["TQQQ"] },
+  "rules": [
+    {
+      "id": "trend-entry",
+      "trigger": { "type": "session_open", "days": "all" },
+      "when": { "all": [
+        { "not": { "pos": "invested" } },
+        { "gt": [ { "ind": "sma", "window": { "param": "FAST" } },
+                  { "ind": "sma", "window": { "param": "SLOW" } } ] } ] },
+      "action": { "type": "market_order", "side": "buy",
+                  "size": { "pct_equity": { "param": "SIZE" } } }
+    },
+    {
+      "id": "trend-exit",
+      "trigger": { "type": "session_open", "days": "all" },
+      "when": { "all": [
+        { "pos": "invested" },
+        { "lt": [ { "ind": "sma", "window": { "param": "FAST" } },
+                  { "ind": "sma", "window": { "param": "SLOW" } } ] } ] },
+      "action": { "type": "liquidate" }
+    }
+  ]
+}

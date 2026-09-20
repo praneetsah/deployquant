@@ -1,0 +1,17 @@
+{
+  "ir_version": "0.1",
+  "meta": { "name": "Monthly Auto-Invest", "version": 1,
+            "default_contribution": { "amount": 500, "cadence": "month" } },
+  "params": { "MONTHLY_DOLLARS": 500 },
+  "universe": { "static": ["SPY"] },
+  "rules": [
+    {
+      "id": "monthly-buy",
+      "trigger": { "type": "session_open", "days": "first_of_month" },
+      "guard": { "once_per": "month" },
+      "when": { "gt": [ { "sleeve": "cash" }, 50 ] },
+      "action": { "type": "market_order", "side": "buy",
+                  "size": { "dollars": { "param": "MONTHLY_DOLLARS" } } }
+    }
+  ]
+}
