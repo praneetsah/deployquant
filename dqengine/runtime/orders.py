@@ -181,9 +181,12 @@ class OrderBook:
             # what lands on Execution.rule_tag), so take() prefers the rows
             # that actually belong to it. For a GENERATED strategy that is
             # the original IR rule id — see dqengine.runtime.identity.
+            # side: a row only ever goes to an order on its own side (see
+            # ExecutionLedger.take)
             real = self.ledger.take(day, ticket.symbol,
                                     intent_id(ticket.symbol, ticket.order_id,
-                                              ticket.tag or ""))
+                                              ticket.tag or ""),
+                                    side=1 if qty > 0 else -1)
             if real == []:
                 # Written as `== []`, not `not real`: the broker AFFIRMATIVELY
                 # did not fill, which is a different fact from "we do not

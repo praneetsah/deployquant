@@ -180,7 +180,7 @@ def test_an_empty_tag_is_not_passed_to_the_ledger_as_a_rule(book_with_sleeve):
     class Spy:
         reconciled_from = DAY
 
-        def take(self, day, symbol, rule_id=None):
+        def take(self, day, symbol, rule_id=None, side=None):
             seen.append(rule_id)
             return None
 
@@ -386,3 +386,19 @@ def test_a_rebalance_that_really_sells_a_symbol_out_still_releases_it():
                               held={"TQQQ": 100})
     assert sleeve.qty.get("TQQQ", 0) == 0
     assert flat == ["TQQQ"], flat
+
+
+def test_a_sell_ticket_is_never_booked_with_a_buy_row(book_with_sleeve):
+    """The order book is where the side is known. A market sell whose own
+    broker row is missing must not consume the day's buy row: before this, the
+    sleeve booked +shares for a sell."""
+    book, sleeve = book_with_sleeve
+    book.market("TQQQ", 100, 50.0, tag="held")             # no ledger yet: the model's fill
+    book.ledger = _ledger([_fill_row(100, 50.0)])          # a BUY row, untagged
+    t = book.market("TQQQ", -100, 51.0, tag="exit")
+    assert sleeve.qty["TQQQ"] == 100                        # nothing applied
+    assert t.status != OrderStatus.FILLED
+    # and the row is still there for the buy it belongs to
+    book.market("TQQQ", 100, 50.0, tag="entry")
+    assert sleeve.qty["TQQQ"] == 200
+

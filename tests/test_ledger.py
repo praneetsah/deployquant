@@ -214,3 +214,58 @@ def test_take_rule_fill_shares_consumption_with_take():
     # the rule's own later bar-cross finds the row already consumed --
     # absence, and (settled day, no unknown) a confirmed no-fill
     assert led.take(D, "TQQQ", "tiered-target") == []
+
+
+# ---- a row is only ever given to an order on the same side
+
+def test_a_sell_never_takes_a_buy_row():
+    """The take-profit's own execution never reached the ledger (a resting
+    order placed days earlier, from a broker that only reports today's orders).
+    The day's only row was the market BUY that followed. Falling back to "any
+    row for this symbol today" handed that buy to the take-profit SELL, the
+    sleeve booked a sell order as +shares, and the executor traded against the
+    result."""
+    led = ExecutionLedger([_f(D, "TQQQ", 100, 50.0, boid="m1")], reconciled_from=D)
+    assert led.take(D, "TQQQ", "take-profit", side=-1) == []
+    # the buy is still there for the order it belongs to
+    assert [g.qty for g in led.take(D, "TQQQ", "entry", side=1)] == [100]
+
+
+def test_a_buy_never_takes_a_sell_row():
+    led = ExecutionLedger([_f(D, "TQQQ", -100, 50.0, boid="m1")], reconciled_from=D)
+    assert led.take(D, "TQQQ", "entry", side=1) == []
+    assert [g.qty for g in led.take(D, "TQQQ", "exit", side=-1)] == [-100]
+
+
+def test_an_opposite_side_row_with_the_orders_own_tag_is_not_taken_either():
+    led = ExecutionLedger([_f(D, "TQQQ", 100, 50.0, tag="take-profit", boid="m1")],
+                          reconciled_from=D)
+    assert led.take(D, "TQQQ", "take-profit", side=-1) == []
+
+
+def test_only_opposite_rows_reads_as_absence_so_unknown_still_applies():
+    led = ExecutionLedger([_f(D, "TQQQ", 100, 50.0, boid="m1")],
+                          unknown={"TQQQ"}, reconciled_from=D)
+    assert led.take(D, "TQQQ", "take-profit", side=-1) is None
+
+
+def test_the_capped_ledger_passes_the_side_through():
+    from dqengine.runtime.core.ledger import LiveCappedLedger
+    led = LiveCappedLedger(
+        ExecutionLedger([_f(D, "TQQQ", 100, 50.0, boid="m1")], reconciled_from=D),
+        live_from=D)
+    assert led.take(D, "TQQQ", "take-profit", side=-1) is None      # live day: unknown
+    assert [g.qty for g in led.take(D, "TQQQ", "entry", side=1)] == [100]
+
+
+def test_without_a_side_take_behaves_as_it_always_has():
+    led = ExecutionLedger([_f(D, "TQQQ", 100, 50.0, boid="m1")], reconciled_from=D)
+    assert [g.qty for g in led.take(D, "TQQQ", "anything")] == [100]
+
+
+def test_a_partial_fill_of_one_order_is_still_taken_whole_with_a_side():
+    led = ExecutionLedger([_f(D, "TQQQ", -60, 50.0, boid="o1"),
+                           _f(D, "TQQQ", 100, 50.1, boid="m1"),
+                           _f(D, "TQQQ", -40, 50.01, boid="o1")], reconciled_from=D)
+    assert [g.qty for g in led.take(D, "TQQQ", "exit", side=-1)] == [-60, -40]
+

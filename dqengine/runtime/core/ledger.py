@@ -74,13 +74,23 @@ class ExecutionLedger:
             return False
         return self.unknown_from is None or day >= self.unknown_from
 
-    def take(self, day: date, symbol: str, rule_id=None):
+    def take(self, day: date, symbol: str, rule_id=None, side=None):
+        """`side` is the asking order's direction (+1 buy, -1 sell; None =
+        any, for callers that have no order). A row is only ever given to an
+        order on its own side. Without this, an order whose own execution
+        never reached the ledger fell through to "any row for this symbol
+        today" and a take-profit SELL was booked with the market BUY that
+        followed it: +shares for a sell, and an executor trading against the
+        result. Rows on the other side are simply not candidates, so a day
+        that holds only those reads as absence, with absence's usual
+        meaning (no fill, or unknown)."""
         symbol = _norm_sym(symbol)
         if self.reconciled_from is None or day < self.reconciled_from:
             return None
         avail = [(i, f) for i, f in enumerate(self._fills)
                  if i not in self._taken and f.day == day
-                 and f.symbol == symbol]
+                 and f.symbol == symbol
+                 and (side is None or (f.qty > 0) == (side > 0))]
         if not avail:
             # PRESENCE WINS: only absence can be unknown. A captured row
             # never becomes less true because new data is hard to see, so
@@ -183,8 +193,8 @@ class LiveCappedLedger:
         self._inner = inner
         self.live_from = live_from
 
-    def take(self, day: date, symbol: str, rule_id=None):
-        real = self._inner.take(day, symbol, rule_id)
+    def take(self, day: date, symbol: str, rule_id=None, side=None):
+        real = self._inner.take(day, symbol, rule_id, side=side)
         if real == [] and day >= self.live_from:
             return None
         return real
