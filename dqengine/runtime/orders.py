@@ -87,7 +87,7 @@ class OrderBook:
         self.next_id = 1
         self.allow_orders = True          # False during warm-up
         self.carried = False              # data-less session: defer market fills
-        # Backtests only (the batch backtester sets it). A market order placed
+        # Backtests only (the backtester sets it, and never on a live run). A market order placed
         # once the session's last bar has closed cannot trade at that bar's
         # price: the exchange is shut. LEAN turns it into market-on-open, and
         # so does this. Live books leave it False -- what a deployment sends a

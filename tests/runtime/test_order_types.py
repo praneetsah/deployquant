@@ -277,7 +277,9 @@ def test_market_on_open_is_filled_before_the_strategy_sees_the_first_bar():
 def test_live_keeps_filling_a_last_bar_market_order_at_once():
     """The conversion is a BACKTEST rule for now. What a live deployment sends
     a broker at 16:00 is a separate decision (the executor and each adapter's
-    market-on-open support), so the warm/live book is left exactly as it was."""
+    market-on-open support), so the warm/live book is left exactly as it was.
+    This covers the book's default only; the _live_run tests below cover what
+    the backtester sets on it."""
     from datetime import date
 
     from conftest_helpers import make_book
@@ -286,6 +288,43 @@ def test_live_keeps_filling_a_last_bar_market_order_at_once():
     assert book.after_close_to_moo is False                   # the default a live book keeps
     t = book.market("TQQQ", 5, 50.0)
     assert t.status == OrderStatus.FILLED and sleeve.qty["TQQQ"] == 5
+
+
+def _live_run(algo, store):
+    """A run marked the way the live driver marks every run it starts (replay
+    and warm): RunOverrides(project_calendar=True). The bare-OrderBook test
+    above cannot see what the backtester sets on the book."""
+    from dqengine.runtime.backtester import RunOverrides
+    return PyBacktester(algo, store, overrides=RunOverrides(project_calendar=True)).run()
+
+
+def test_a_live_run_fills_a_last_bar_market_order_at_once():
+    class LastBar(Base):
+        def on_data(self, data):
+            self.i += 1
+            if self.i == 3:                                   # the bar that ends at 16:00
+                self.market_order(self.sym, 5, tag="late")
+
+    res = _live_run(LastBar(), _full_session_store())
+    assert "error" not in res, res.get("error")
+    assert [(f["day"], f["px"], f["qty"]) for f in res["fills"]] == [("2026-08-24", 102.0, 5)]
+
+
+def test_a_live_run_fills_market_on_open_where_it_always_did():
+    """Against the first bar's close, after the handlers have run."""
+    class MOO(Base):
+        def on_data(self, data):
+            self.i += 1
+            if self.i == 3:
+                self.market_on_open_order(self.sym, 5)
+            if self.i == 4:
+                self.seen = self.portfolio[self.sym].quantity
+
+    algo = MOO()
+    res = _live_run(algo, _full_session_store())
+    assert "error" not in res, res.get("error")
+    assert [(f["day"], f["px"], f["qty"]) for f in res["fills"]] == [("2026-08-25", 103.0, 5)]
+    assert algo.seen == 0
 
 
 def test_the_fast_path_runs_a_scheduled_strategy_that_rests_a_market_on_open_order():
@@ -312,3 +351,28 @@ def test_the_fast_path_runs_a_scheduled_strategy_that_rests_a_market_on_open_ord
     assert res["fast_path"]["eligible"] is True
     assert [(f["day"], f["px"], f["qty"]) for f in res["fills"]] == [("2026-08-25", 102.5, 5)]
 
+
+def test_a_live_replay_on_the_fast_path_fills_market_on_open_where_the_walk_does():
+    class Scheduled(QCAlgorithm):
+        def initialize(self):
+            self.set_start_date(2026, 8, 24)
+            self.set_end_date(2026, 8, 25)
+            self.set_cash(100000)
+            self.sym = self.add_equity("TQQQ").symbol
+            self.schedule.on(self.date_rules.every_day(self.sym),
+                             self.time_rules.after_market_open(self.sym, 1), self.go)
+            self.done = False
+
+        def go(self):
+            if not self.done:
+                self.done = True
+                self.market_on_open_order(self.sym, 5)
+
+    res = _live_run(Scheduled(), _full_session_store())
+    assert "error" not in res, res.get("error")
+    assert res["fast_path"]["eligible"] is True
+    # A market-on-open order placed while the session's first bar is being
+    # handled fills against that same bar. That is what a live run did before
+    # 2026-09-20 (checked against ac679b7ce^: 2026-08-24 at 100.0, walk and
+    # fast path alike), and a live deployment's history is built from it.
+    assert [(f["day"], f["px"], f["qty"]) for f in res["fills"]] == [("2026-08-24", 100.0, 5)]

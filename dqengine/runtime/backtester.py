@@ -90,6 +90,11 @@ class PyBacktester:
         # strategy keeps its IR deployment's order identities
         self.generated = generated
         self.overrides = overrides or RunOverrides()
+        # A live run (replay or warm engine). project_calendar is the mark the
+        # live driver puts on every run it starts and no backtest carries.
+        # Settled history of a live deployment must not move when a backtest
+        # rule changes, or the determinism check freezes it.
+        self._live = bool(getattr(self.overrides, "project_calendar", False))
         self._day: date | None = None
         self._ms: int = 0
         # live-progress observation (never affects the sim): a throttled
@@ -413,9 +418,10 @@ class PyBacktester:
         # (IR's LEAN-validated carried-day semantic); resting orders are
         # not evaluated at all.
         book.carried = carried_day
-        # batch runs follow LEAN across the close (see OrderBook.market); a
-        # warm/live book keeps filling at once, as it always has
-        book.after_close_to_moo = not warm
+        # backtests follow LEAN across the close (see OrderBook.market); a
+        # live run keeps filling at once, as it always has. `warm` here is a
+        # WARM-UP day, not a live engine: live is self._live.
+        book.after_close_to_moo = not warm and not self._live
 
     def _fast_forward(self, day: date):
         """Batch-only. Try the quiet-bar fast path over the session; build
@@ -485,7 +491,8 @@ class PyBacktester:
             dict.__setitem__(slice_bars, s, bar)
             self._feed_indicators(s, bar, minute=True)
             self._feed_consolidators(s, bar)
-        if not self._first_bar_done and not self._warm and not carried_day:
+        if (not self._first_bar_done and not self._warm and not self._live
+                and not carried_day):
             # market-on-open: LEAN fills it at the session's first OPEN and
             # before the algorithm is handed that bar -- a strategy that
             # reads its position in on_data must already see the fill, or it
@@ -535,7 +542,7 @@ class PyBacktester:
             algo.securities[s].invested = sleeve.qty.get(s, 0) != 0
         if not self._first_bar_done:
             self._first_bar_done = True
-            if self._warm and not carried_day:
+            if (self._warm or self._live) and not carried_day:
                 # live: unchanged -- against the first bar, after the handlers
                 from .enums import OrderType as _OT
                 book.fill_at_session_edge(_OT.MARKET_ON_OPEN, prices)
@@ -798,7 +805,8 @@ class PyBacktester:
                     applied[s] = idx
                 if int(ends_s[idx]) == t:
                     at_t.append((s, idx))
-            if not carried and not warm and not self._first_bar_done:
+            if (not carried and not warm and not self._live
+                    and not self._first_bar_done):
                 # same rule as the walk: market-on-open at the first open,
                 # before any handler runs. Marked done so a mid-day demotion
                 # to the walk does not fill a second time.
@@ -819,6 +827,13 @@ class PyBacktester:
                                        exclude_created=(day, t))
             for s in syms:
                 algo.securities[s].invested = sleeve.qty.get(s, 0) != 0
+            if self._live and not self._first_bar_done:
+                # a live replay: where the walk fills it for a live run,
+                # against the first bar, after the handlers
+                self._first_bar_done = True
+                if not carried:
+                    from .enums import OrderType as _OT
+                    book.fill_at_session_edge(_OT.MARKET_ON_OPEN, prices)
             last_t = t
             while fi < len(forced) and forced[fi] <= t:
                 fi += 1
