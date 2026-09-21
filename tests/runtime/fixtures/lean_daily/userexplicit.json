@@ -1,0 +1,378 @@
+{
+ "checks": [
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.011113,
+    "SPY": 0.026308
+   },
+   "price": {
+    "SGOV": 94.62,
+    "SPY": 576.19
+   },
+   "time": "2025-01-02 15:45:00",
+   "tpv": 100000.0
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.010946,
+    "SPY": 0.044396
+   },
+   "price": {
+    "SGOV": 95.13,
+    "SPY": 599.41
+   },
+   "time": "2025-02-18 15:45:00",
+   "tpv": 102783.62
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.010252,
+    "SPY": -0.042677
+   },
+   "price": {
+    "SGOV": 95.59,
+    "SPY": 551.6
+   },
+   "time": "2025-04-01 15:45:00",
+   "tpv": 97195.62
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.009986,
+    "SPY": -0.034601
+   },
+   "price": {
+    "SGOV": 96.08,
+    "SPY": 578.67
+   },
+   "time": "2025-05-14 15:45:00",
+   "tpv": 98649.0
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.010148,
+    "SPY": 0.097063
+   },
+   "price": {
+    "SGOV": 96.56,
+    "SPY": 605.14
+   },
+   "time": "2025-06-27 15:45:00",
+   "tpv": 100342.28
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.010408,
+    "SPY": 0.088997
+   },
+   "price": {
+    "SGOV": 97.08,
+    "SPY": 630.17
+   },
+   "time": "2025-08-11 15:45:00",
+   "tpv": 103069.51
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.01046,
+    "SPY": 0.092855
+   },
+   "price": {
+    "SGOV": 97.57,
+    "SPY": 661.33
+   },
+   "time": "2025-09-23 15:45:00",
+   "tpv": 106779.63
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.009786,
+    "SPY": 0.075408
+   },
+   "price": {
+    "SGOV": 98.03,
+    "SPY": 677.69
+   },
+   "time": "2025-11-04 15:45:00",
+   "tpv": 108776.68
+  },
+  {
+   "at": "rebalance",
+   "mom": {
+    "SGOV": 0.009224,
+    "SPY": 0.018039
+   },
+   "price": {
+    "SGOV": 98.47,
+    "SPY": 673.26
+   },
+   "time": "2025-12-17 15:45:00",
+   "tpv": 108418.27
+  },
+  {
+   "at": "final",
+   "cash": 518.11,
+   "holdings": {
+    "SGOV": 330,
+    "SPY": 112
+   },
+   "tpv": 109033.37
+  }
+ ],
+ "fills": [
+  {
+   "price": 577.61,
+   "qty": 121,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-01-03 16:00:00"
+  },
+  {
+   "price": 94.67,
+   "qty": 317,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-01-03 16:00:00"
+  },
+  {
+   "price": 599.78,
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-02-19 16:00:00"
+  },
+  {
+   "price": 95.16,
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-02-19 16:00:00"
+  },
+  {
+   "price": 547.32,
+   "qty": -68,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-04-02 16:00:00"
+  },
+  {
+   "price": 95.62,
+   "qty": 387,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-04-02 16:00:00"
+  },
+  {
+   "price": 577.41,
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-05-15 16:00:00"
+  },
+  {
+   "price": 96.09,
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-05-15 16:00:00"
+  },
+  {
+   "price": 610.59,
+   "qty": 65,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-06-30 16:00:00"
+  },
+  {
+   "price": 96.6,
+   "qty": -407,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-06-30 16:00:00"
+  },
+  {
+   "price": 631.27,
+   "qty": -2,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-08-12 16:00:00"
+  },
+  {
+   "price": 97.1,
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-08-12 16:00:00"
+  },
+  {
+   "price": 659.02,
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-09-24 16:00:00"
+  },
+  {
+   "price": 97.59,
+   "qty": 10,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-09-24 16:00:00"
+  },
+  {
+   "price": 669.4,
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-11-05 16:00:00"
+  },
+  {
+   "price": 98.04,
+   "qty": 4,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-11-05 16:00:00"
+  },
+  {
+   "price": 98.5,
+   "qty": -2,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-12-18 16:00:00"
+  }
+ ],
+ "note": "The same shape as `userlike`, but the strategy works out its own share counts and sends market orders, so sizing is identical on both engines by construction and the run compares only the timing, the conversion and the fills.",
+ "orders": [
+  {
+   "qty": 121,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-01-02 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 317,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-01-02 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-02-18 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-02-18 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -68,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-04-01 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 387,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-04-01 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-05-14 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-05-14 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 65,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-06-27 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -407,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-06-27 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -2,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-08-11 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 7,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-08-11 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-09-23 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 10,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-09-23 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -1,
+   "sym": "SPY",
+   "tag": "w_SPY",
+   "time": "2025-11-04 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": 4,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-11-04 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "qty": -2,
+   "sym": "SGOV",
+   "tag": "w_SGOV",
+   "time": "2025-12-17 15:45:00",
+   "type": "market_on_open"
+  }
+ ],
+ "probe": "userexplicit",
+ "symbols": [
+  "SPY",
+  "SGOV"
+ ]
+}

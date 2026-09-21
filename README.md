@@ -292,6 +292,13 @@ That comparison is a test in this repo
 get from a fresh data download, so you can check it yourself. The 70 indicators
 are tested against values recorded from LEAN.
 
+Daily-resolution strategies follow LEAN in two more places. A scheduled event
+runs at its own clock time on the previous session's close, not on the bar that
+arrives at the close. A market order it places becomes market-on-close, or
+market-on-open once the session is within 15.5 minutes of closing, which is
+what LEAN does with it. Both are tested against recordings from LEAN in
+`tests/runtime/fixtures/lean_daily/`.
+
 LEAN covers more today. The plan is to bring DQengine to parity with it, and
 then past it. Open an issue for anything you want sooner. Feature by feature:
 

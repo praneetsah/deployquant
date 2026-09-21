@@ -1,0 +1,1400 @@
+{
+ "checks": [
+  {
+   "SGOV": {
+    "price": 98.2,
+    "ready": true,
+    "sma": 98.17
+   },
+   "SPY": {
+    "price": 647.14,
+    "ready": true,
+    "sma": 657.094
+   },
+   "at": "open30",
+   "time": "2025-11-21 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.2,
+    "ready": true,
+    "sma": 98.17
+   },
+   "SPY": {
+    "price": 647.14,
+    "ready": true,
+    "sma": 657.094
+   },
+   "at": "c60",
+   "time": "2025-11-21 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.2,
+    "ready": true,
+    "sma": 98.17
+   },
+   "SPY": {
+    "price": 647.14,
+    "ready": true,
+    "sma": 657.094
+   },
+   "at": "c20",
+   "time": "2025-11-21 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.2,
+    "ready": true,
+    "sma": 98.17
+   },
+   "SPY": {
+    "price": 647.14,
+    "ready": true,
+    "sma": 657.094
+   },
+   "at": "c16",
+   "time": "2025-11-21 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.2,
+    "ready": true,
+    "sma": 98.17
+   },
+   "SPY": {
+    "price": 647.14,
+    "ready": true,
+    "sma": 657.094
+   },
+   "at": "c15",
+   "time": "2025-11-21 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "ondata",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "open30",
+   "time": "2025-11-24 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "c60",
+   "time": "2025-11-24 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "c20",
+   "time": "2025-11-24 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "c16",
+   "time": "2025-11-24 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.22,
+    "ready": true,
+    "sma": 98.184
+   },
+   "SPY": {
+    "price": 653.58,
+    "ready": true,
+    "sma": 654.534
+   },
+   "at": "c15",
+   "time": "2025-11-24 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "ondata",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "open30",
+   "time": "2025-11-25 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "c60",
+   "time": "2025-11-25 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "c20",
+   "time": "2025-11-25 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "c16",
+   "time": "2025-11-25 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.23,
+    "ready": true,
+    "sma": 98.198
+   },
+   "SPY": {
+    "price": 663.2,
+    "ready": true,
+    "sma": 655.14
+   },
+   "at": "c15",
+   "time": "2025-11-25 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "ondata",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "open30",
+   "time": "2025-11-26 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "c60",
+   "time": "2025-11-26 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "c20",
+   "time": "2025-11-26 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "c16",
+   "time": "2025-11-26 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.25,
+    "ready": true,
+    "sma": 98.216
+   },
+   "SPY": {
+    "price": 669.44,
+    "ready": true,
+    "sma": 658.102
+   },
+   "at": "c15",
+   "time": "2025-11-26 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "ondata",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "open30",
+   "time": "2025-11-28 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "c60",
+   "time": "2025-11-28 12:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "c20",
+   "time": "2025-11-28 12:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "c16",
+   "time": "2025-11-28 12:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.26,
+    "ready": true,
+    "sma": 98.232
+   },
+   "SPY": {
+    "price": 674.06,
+    "ready": true,
+    "sma": 661.484
+   },
+   "at": "c15",
+   "time": "2025-11-28 12:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "ondata",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "open30",
+   "time": "2025-12-01 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "c60",
+   "time": "2025-12-01 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "c20",
+   "time": "2025-12-01 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "c16",
+   "time": "2025-12-01 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.29,
+    "ready": true,
+    "sma": 98.25
+   },
+   "SPY": {
+    "price": 677.74,
+    "ready": true,
+    "sma": 667.604
+   },
+   "at": "c15",
+   "time": "2025-12-01 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "ondata",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "open30",
+   "time": "2025-12-02 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "c60",
+   "time": "2025-12-02 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "c20",
+   "time": "2025-12-02 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "c16",
+   "time": "2025-12-02 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.31,
+    "ready": true,
+    "sma": 98.268
+   },
+   "SPY": {
+    "price": 674.65,
+    "ready": true,
+    "sma": 671.818
+   },
+   "at": "c15",
+   "time": "2025-12-02 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "ondata",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "open30",
+   "time": "2025-12-03 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "c60",
+   "time": "2025-12-03 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "c20",
+   "time": "2025-12-03 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "c16",
+   "time": "2025-12-03 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.33,
+    "ready": true,
+    "sma": 98.288
+   },
+   "SPY": {
+    "price": 675.9,
+    "ready": true,
+    "sma": 674.358
+   },
+   "at": "c15",
+   "time": "2025-12-03 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 98.34,
+    "ready": true,
+    "sma": 98.306
+   },
+   "SPY": {
+    "price": 678.24,
+    "ready": true,
+    "sma": 676.118
+   },
+   "at": "ondata",
+   "time": "2025-12-03 16:00:00"
+  }
+ ],
+ "fills": [
+  {
+   "price": 653.58,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "price": 653.58,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "price": 653.58,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "price": 98.22,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "price": 653.58,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-21 16:00:00"
+  },
+  {
+   "price": 657.21,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 98.23,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 663.2,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 663.2,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 663.2,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 98.23,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 663.2,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-24 16:00:00"
+  },
+  {
+   "price": 663.1,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 98.25,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 669.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 669.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 669.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 98.25,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 669.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-25 16:00:00"
+  },
+  {
+   "price": 672.03,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 98.26,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 674.06,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 674.06,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 674.06,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 98.26,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 674.06,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-26 16:00:00"
+  },
+  {
+   "price": 675.23,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 98.29,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 677.74,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 677.74,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 677.74,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 98.29,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 677.74,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-28 13:00:00"
+  },
+  {
+   "price": 673.2,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 98.31,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 674.65,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 674.65,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 674.65,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 98.31,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 674.65,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-01 16:00:00"
+  },
+  {
+   "price": 676.28,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 98.32,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 675.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 675.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 675.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 98.33,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 675.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-02 16:00:00"
+  },
+  {
+   "price": 674.95,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 98.34,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 678.24,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 678.24,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 678.24,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 98.34,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-03 16:00:00"
+  },
+  {
+   "price": 678.24,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-03 16:00:00"
+  }
+ ],
+ "note": "SPY+SGOV daily 2025-11-21..12-03, warm-up 120; covers the 11-27 holiday and the 11-28 early close (13:00).",
+ "orders": [
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-21 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-21 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-21 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-21 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-21 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-21 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-21 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-24 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-24 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-24 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-24 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-24 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-24 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-24 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-25 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-25 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-25 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-25 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-25 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-25 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-25 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-26 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-26 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-26 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-26 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-26 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-26 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-26 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-11-28 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-11-28 12:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-11-28 12:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-11-28 12:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-11-28 12:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-11-28 12:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-11-28 13:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-01 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-01 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-01 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-01 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-01 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-01 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-01 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-02 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-02 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-02 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-02 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-02 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-02 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-02 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2025-12-03 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2025-12-03 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2025-12-03 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2025-12-03 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2025-12-03 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2025-12-03 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2025-12-03 16:00:00",
+   "type": "market_on_open"
+  }
+ ],
+ "probe": "combined_thanks",
+ "symbols": [
+  "SPY",
+  "SGOV"
+ ]
+}

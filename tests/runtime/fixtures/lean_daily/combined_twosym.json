@@ -1,0 +1,1892 @@
+{
+ "checks": [
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "at": "open30",
+   "time": "2020-05-20 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "at": "c60",
+   "time": "2020-05-20 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "at": "c20",
+   "time": "2020-05-20 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "at": "c16",
+   "time": "2020-05-20 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "at": "c15",
+   "time": "2020-05-20 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "ondata",
+   "time": "2020-05-20 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "open30",
+   "time": "2020-05-21 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "c60",
+   "time": "2020-05-21 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "c20",
+   "time": "2020-05-21 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "c16",
+   "time": "2020-05-21 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 272.33,
+    "ready": false,
+    "sma": 272.33
+   },
+   "at": "c15",
+   "time": "2020-05-21 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "ondata",
+   "time": "2020-05-21 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "open30",
+   "time": "2020-05-22 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "c60",
+   "time": "2020-05-22 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "c20",
+   "time": "2020-05-22 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "c16",
+   "time": "2020-05-22 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.31,
+    "ready": false,
+    "sma": 271.32
+   },
+   "at": "c15",
+   "time": "2020-05-22 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "ondata",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "open30",
+   "time": "2020-05-26 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "c60",
+   "time": "2020-05-26 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "c20",
+   "time": "2020-05-26 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "c16",
+   "time": "2020-05-26 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 270.9,
+    "ready": false,
+    "sma": 271.18
+   },
+   "at": "c15",
+   "time": "2020-05-26 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "ondata",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "open30",
+   "time": "2020-05-27 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "c60",
+   "time": "2020-05-27 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "c20",
+   "time": "2020-05-27 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "c16",
+   "time": "2020-05-27 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 274.31,
+    "ready": false,
+    "sma": 271.9625
+   },
+   "at": "c15",
+   "time": "2020-05-27 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "ondata",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "open30",
+   "time": "2020-05-28 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "c60",
+   "time": "2020-05-28 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "c20",
+   "time": "2020-05-28 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "c16",
+   "time": "2020-05-28 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 0.0,
+    "ready": false,
+    "sma": 0.0
+   },
+   "SPY": {
+    "price": 278.3,
+    "ready": true,
+    "sma": 273.23
+   },
+   "at": "c15",
+   "time": "2020-05-28 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "ondata",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "open30",
+   "time": "2020-05-29 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "c60",
+   "time": "2020-05-29 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "c20",
+   "time": "2020-05-29 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "c16",
+   "time": "2020-05-29 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 277.86,
+    "ready": true,
+    "sma": 274.336
+   },
+   "at": "c15",
+   "time": "2020-05-29 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "ondata",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "open30",
+   "time": "2020-06-01 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "c60",
+   "time": "2020-06-01 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "c20",
+   "time": "2020-06-01 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "c16",
+   "time": "2020-06-01 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.09,
+    "ready": false,
+    "sma": 84.095
+   },
+   "SPY": {
+    "price": 279.16,
+    "ready": true,
+    "sma": 276.106
+   },
+   "at": "c15",
+   "time": "2020-06-01 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "ondata",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "open30",
+   "time": "2020-06-02 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "c60",
+   "time": "2020-06-02 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "c20",
+   "time": "2020-06-02 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "c16",
+   "time": "2020-06-02 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.096667
+   },
+   "SPY": {
+    "price": 280.04,
+    "ready": true,
+    "sma": 277.934
+   },
+   "at": "c15",
+   "time": "2020-06-02 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "ondata",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "open30",
+   "time": "2020-06-03 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "c60",
+   "time": "2020-06-03 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "c20",
+   "time": "2020-06-03 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "c16",
+   "time": "2020-06-03 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": false,
+    "sma": 84.0975
+   },
+   "SPY": {
+    "price": 282.46,
+    "ready": true,
+    "sma": 279.564
+   },
+   "at": "c15",
+   "time": "2020-06-03 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "ondata",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "open30",
+   "time": "2020-06-04 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "c60",
+   "time": "2020-06-04 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "c20",
+   "time": "2020-06-04 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "c16",
+   "time": "2020-06-04 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 286.13,
+    "ready": true,
+    "sma": 281.13
+   },
+   "at": "c15",
+   "time": "2020-06-04 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "ondata",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "open30",
+   "time": "2020-06-05 10:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "c60",
+   "time": "2020-06-05 15:00:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "c20",
+   "time": "2020-06-05 15:40:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "c16",
+   "time": "2020-06-05 15:44:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.098
+   },
+   "SPY": {
+    "price": 285.44,
+    "ready": true,
+    "sma": 282.646
+   },
+   "at": "c15",
+   "time": "2020-06-05 15:45:00"
+  },
+  {
+   "SGOV": {
+    "price": 84.1,
+    "ready": true,
+    "sma": 84.1
+   },
+   "SPY": {
+    "price": 292.83,
+    "ready": true,
+    "sma": 285.38
+   },
+   "at": "ondata",
+   "time": "2020-06-05 16:00:00"
+  }
+ ],
+ "fills": [
+  {
+   "price": 270.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-21 16:00:00"
+  },
+  {
+   "price": 270.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-21 16:00:00"
+  },
+  {
+   "price": 270.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-21 16:00:00"
+  },
+  {
+   "price": 270.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-21 16:00:00"
+  },
+  {
+   "price": 270.05,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "price": 270.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "price": 270.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "price": 270.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "price": 270.9,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-22 16:00:00"
+  },
+  {
+   "price": 276.82,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "price": 274.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "price": 274.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "price": 274.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "price": 274.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-26 16:00:00"
+  },
+  {
+   "price": 276.99,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "price": 278.3,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "price": 278.3,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "price": 278.3,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "price": 278.3,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-27 16:00:00"
+  },
+  {
+   "price": 279.31,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "price": 277.86,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "price": 277.86,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "price": 277.86,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "price": 277.86,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-28 16:00:00"
+  },
+  {
+   "price": 277.3,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 279.16,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 279.16,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 279.16,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 84.09,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 279.16,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-29 16:00:00"
+  },
+  {
+   "price": 278.37,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 280.04,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 280.04,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 280.04,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 280.04,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-01 16:00:00"
+  },
+  {
+   "price": 281.05,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 282.46,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 282.46,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 282.46,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 282.46,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-02 16:00:00"
+  },
+  {
+   "price": 284.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 286.13,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 286.13,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 286.13,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 286.13,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-03 16:00:00"
+  },
+  {
+   "price": 285.23,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 84.08,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 285.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 285.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 285.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 285.44,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-04 16:00:00"
+  },
+  {
+   "price": 290.85,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 292.83,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 292.83,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 292.83,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 84.1,
+   "qty": 1,
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-05 16:00:00"
+  },
+  {
+   "price": 292.83,
+   "qty": 1,
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-05 16:00:00"
+  }
+ ],
+ "note": "SPY+SGOV daily 2020-05-20..06-05, no warm-up; SGOV's first bar is 2020-05-28, so the run starts with neither symbol priced.",
+ "orders": [
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-21 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-21 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-21 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-21 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-21 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-22 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-22 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-22 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-22 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-22 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-26 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-26 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-26 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-26 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-26 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-27 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-27 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-27 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-27 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-27 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-28 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-28 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-28 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-28 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-28 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-05-28 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-05-29 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-05-29 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-05-29 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-05-29 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-05-29 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-05-29 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-05-29 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-01 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-01 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-01 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-01 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-01 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-01 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-01 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-02 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-02 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-02 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-02 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-02 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-02 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-02 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-03 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-03 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-03 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-03 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-03 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-03 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-03 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-04 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-04 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-04 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-04 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-04 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-04 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-04 16:00:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_open30",
+   "time": "2020-06-05 10:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c60",
+   "time": "2020-06-05 15:00:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c20",
+   "time": "2020-06-05 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "moc_c20",
+   "time": "2020-06-05 15:40:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c16",
+   "time": "2020-06-05 15:44:00",
+   "type": "market_on_close"
+  },
+  {
+   "sym": "SPY",
+   "tag": "mkt_c15",
+   "time": "2020-06-05 15:45:00",
+   "type": "market_on_open"
+  },
+  {
+   "sym": "SGOV",
+   "tag": "mkt_ondata",
+   "time": "2020-06-05 16:00:00",
+   "type": "market_on_open"
+  }
+ ],
+ "probe": "combined_twosym",
+ "symbols": [
+  "SPY",
+  "SGOV"
+ ]
+}

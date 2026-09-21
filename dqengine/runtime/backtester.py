@@ -195,6 +195,17 @@ class PyBacktester:
         # calendar over the union of available days for the subscriptions
         daily_mode = self._daily_mode = all(sec.resolution == Resolution.DAILY
                                             for sec in algo.securities.values())
+        # A daily BACKTEST session hands the algorithm one bar, and it lands
+        # at the close. Running the session's scheduled events off that bar
+        # shows them a close the exchange has not printed yet, so in daily
+        # mode the ones due before the close run first, at their own clock
+        # time, on the previous session's prices -- and the orders they place
+        # convert the way LEAN converts them (see OrderBook.market). Minute
+        # and second runs keep the data-first order; live keeps everything it
+        # had, here and in the book.
+        self._daily_lean_order = daily_mode and not self._live
+        book.daily_conversion = self._daily_lean_order
+        book.notice_out = algo.log
         # the bar span is the RESOLUTION, never inferred from a symbol's
         # first two bars of the day: a thin ETF that prints at 09:30 and
         # again at 09:33 does not print three-minute bars, and inferring so
@@ -278,6 +289,7 @@ class PyBacktester:
         self._day_bars: dict = {}
         self._spans: dict = {}
         self._day_events: list = []
+        self._pre_bar_events: list = []
         self._warm = False
         self._carried_day = False
         self._ends_map: dict[int, list[tuple[str, int]]] = {}
@@ -383,6 +395,7 @@ class PyBacktester:
         self._day_bars = day_bars
         self._carried_day = carried_day
         self._ends_map = {}
+        self._pre_bar_events = []
         self._prev_t = -1
         self._primed_through = -1
         self._first_bar_done = False
@@ -410,6 +423,15 @@ class PyBacktester:
             for ev in algo.schedule.events:
                 if ev.date_rule.matches(day, self._cal):
                     day_events.append((ev.time_rule.fire_ms(open_ms, close_ms), ev))
+        if self._daily_lean_order:
+            # Split at the close: what is due while the session is open runs
+            # before the bar (_step_bar), in fire order; what is due at or
+            # after it runs after the bar, as at every other resolution.
+            # close_ms is the day's REAL close, so an early close moves both
+            # the split and every before_close fire time with it.
+            self._pre_bar_events = sorted(
+                (ms, ev) for ms, ev in day_events if ms < close_ms)
+            day_events = [(ms, ev) for ms, ev in day_events if ms >= close_ms]
         self._day_events = day_events
 
         # Carried (data-less) session: user code runs — bars stream at the
@@ -475,6 +497,10 @@ class PyBacktester:
 
         self._ms = t
         algo.time = _dt(day, t)
+        if self._daily_lean_order and not self._first_bar_done and not self._warm:
+            self._run_pre_bar_events(day)
+            if algo._quit:
+                return
         slice_bars = Bars()
         for s, i in entries:
             b = day_bars[s]
@@ -490,6 +516,13 @@ class PyBacktester:
                            o, h, l, c, float(b.volume[i]))
             dict.__setitem__(slice_bars, s, bar)
             self._feed_indicators(s, bar, minute=True)
+            if self._daily_lean_order:
+                # In daily mode this bar IS the session's daily bar, and
+                # LEAN has fed it to the daily indicators by the time
+                # on_data runs. _end_session leaves them alone here; at
+                # every other resolution the daily bar is only complete at
+                # the session's end, which is where it is still fed.
+                self._feed_indicators(s, None, minute=False, day_bars=b)
             self._feed_consolidators(s, bar)
         if (not self._first_bar_done and not self._warm and not self._live
                 and not carried_day):
@@ -516,6 +549,14 @@ class PyBacktester:
                 book.check_resting(s, float(b.open[i]), float(b.high[i]),
                                    float(b.low[i]), float(b.close[i]),
                                    exclude_created=(day, t) if late_behind_prime else None)
+        if self._daily_lean_order and not carried_day:
+            # LEAN fills market-on-close at the close and BEFORE it hands
+            # the algorithm the day's bar, so a strategy that reads its
+            # position in on_data already sees the fill. _end_session leaves
+            # these alone in daily mode, which is also what sends an order
+            # placed at the close to the NEXT session's close, as on LEAN.
+            from .enums import OrderType as _OT
+            book.fill_at_session_edge(_OT.MARKET_ON_CLOSE, prices)
         algo._current_slice = Slice(slice_bars, algo.time)
         algo._market_open = True
         self._on_data(algo._current_slice)
@@ -548,12 +589,37 @@ class PyBacktester:
                 book.fill_at_session_edge(_OT.MARKET_ON_OPEN, prices)
         self._prev_t = t
 
+    def _run_pre_bar_events(self, day: date) -> None:
+        """Daily backtests: the events due while the session is open, run
+        before the day's bar is applied.
+
+        Each runs at its own clock time with prices, indicators and history
+        still through the PREVIOUS session — the only state the algorithm
+        could really have had at 15:45. Running them off the day's bar
+        instead is a day of look-ahead on every scheduled decision. What
+        they place converts in OrderBook.market, and the resting tickets
+        that result fill once the bar lands, below: LEAN settles
+        market-on-open and market-on-close when the daily bar arrives, so
+        an order cancelled at 15:45 is still cancellable."""
+        algo = self.algo
+        close_ms = self._ms
+        for fire_ms, ev in self._pre_bar_events:
+            self._ms = fire_ms
+            algo.time = _dt(day, fire_ms)
+            ev.callback()
+            if algo._quit:
+                return
+        self._ms = close_ms
+        algo.time = _dt(day, close_ms)
+
     def _fill_market_on_open(self, entries) -> None:
         """Fill resting market-on-open tickets at the OPEN of the bars in
         `entries` (the session's first stepped bars)."""
         from .enums import OrderType as _OT
         opens = {s: float(self._day_bars[s].open[i]) for s, i in entries}
-        self._book.fill_at_session_edge(_OT.MARKET_ON_OPEN, opens)
+        self._book.fill_at_session_edge(
+            _OT.MARKET_ON_OPEN, opens,
+            not_created_on=self._day if self._daily_lean_order else None)
 
     def _end_session(self, day: date) -> None:
         """Close a session: market-on-close, consolidator flush, daily
@@ -568,13 +634,14 @@ class PyBacktester:
         # market-on-close: the clock is the trigger, not a price, so it
         # cannot live in check_resting. Fill at each symbol's last close.
         from .enums import OrderType as _OT
-        if not self._carried_day:
+        if not self._carried_day and not self._daily_lean_order:
             book.fill_at_session_edge(_OT.MARKET_ON_CLOSE, prices)
 
         # session close
         for s, b in day_bars.items():
             self._flush_consolidators(s)
-            self._feed_indicators(s, None, minute=False, day_bars=b)
+            if not self._daily_lean_order:
+                self._feed_indicators(s, None, minute=False, day_bars=b)
         resolve_hook(algo, "on_end_of_time_step", "OnEndOfTimeStep")()
         try:
             self._on_eod()

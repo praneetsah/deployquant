@@ -23,6 +23,32 @@ from .identity import GENERATED_TAG_PREFIX, intent_id
 from .aliases import PascalMixin, alias_methods
 from .enums import OrderDirection, OrderStatus, OrderType, UpdateOrderFields
 
+# LEAN refuses a market-on-close order submitted less than this before the
+# session's close (Orders.MarketOnCloseOrder.SubmissionTimeBuffer, 00:15:30),
+# and converts a market order to market-on-open rather than market-on-close
+# inside the same window. Measured on the LEAN CLI: 15:44 is accepted,
+# 15:45 is not.
+MOC_SUBMISSION_BUFFER_MS = 930_000
+
+MOC_BUFFER_MESSAGE = (
+    "MarketOnClose orders must be placed within 00:15:30 before market "
+    "close. Override this TimeSpan buffer by setting "
+    "Orders.MarketOnCloseOrder.SubmissionTimeBuffer in "
+    "QCAlgorithm.Initialize().")
+
+UNPRICED_MESSAGE = (
+    "{}: The security does not have an accurate price as it has not yet "
+    "received a bar of data. Before placing a trade (or using set_holdings) "
+    "warm up your algorithm with set_warmup, or use slice.contains(symbol) "
+    "to confirm the Slice object has price before using the data.")
+
+DAILY_CONVERSION_NOTICE = (
+    "Warning: market orders on daily resolution data sent during market "
+    "hours are automatically converted into MarketOnClose orders (or "
+    "MarketOnOpen near the close) to avoid filling at the stale previous "
+    "close. Note: in live trading this conversion is not applied, as the "
+    "order fills at the current market price.")
+
 
 @dataclass
 class OrderEvent(PascalMixin):
@@ -93,6 +119,18 @@ class OrderBook:
         # so does this. Live books leave it False -- what a deployment sends a
         # broker at 16:00 is the executor's decision, not the model's.
         self.after_close_to_moo = False
+        # Daily-resolution BACKTESTS only (the backtester sets it; never on a
+        # live run, never at minute or second resolution). A daily session
+        # hands the algorithm one bar, at the close, so during the session
+        # the only price a market order could fill at is the previous
+        # session's close -- a price nobody can trade. LEAN converts instead,
+        # and refuses a market-on-close order submitted inside the buffer;
+        # see market() and market_on_close() for the two rules.
+        self.daily_conversion = False
+        # Where the daily conversion's one-time notice goes (the algorithm's
+        # log). None = say nothing, which is every non-daily run.
+        self.notice_out = None
+        self._noticed = False
         self.refused_log: list[str] = []
         self.rejections: dict[str, int] = {}   # reason -> count
         # Broker-execution ledger (live only). None = backtest: the model's
@@ -303,6 +341,27 @@ class OrderBook:
         self._unrest(ticket)
         self._emit(ticket, OrderStatus.INVALID, message=why)
 
+    def _priced(self, symbol) -> bool:
+        """Has this symbol printed a bar yet? Before its first one every
+        price the algorithm can read is 0, and an order sized or filled off
+        that is nonsense. LEAN refuses such an order and creates nothing."""
+        return float(self.prices.get(str(symbol).upper(), 0.0) or 0.0) > 0
+
+    def _refuse_unpriced(self, symbol, qty, order_type, tag) -> OrderTicket:
+        t = self._new_ticket(symbol, qty, order_type, tag)
+        why = UNPRICED_MESSAGE.format(t.symbol)
+        self.refused_log.append(why)
+        self._reject(t, why)
+        return t
+
+    def _notice(self, message: str):
+        """Say once, into the algorithm's log, what the engine is doing to
+        the orders. LEAN prints the same warning once per run."""
+        if self._noticed or self.notice_out is None:
+            return
+        self._noticed = True
+        self.notice_out(message)
+
     def _refuse_warmup(self, symbol, qty, order_type, tag) -> OrderTicket:
         t = self._new_ticket(symbol, qty, order_type, tag)
         t.status = OrderStatus.INVALID
@@ -316,10 +375,19 @@ class OrderBook:
     def market(self, symbol, qty, price, tag="") -> OrderTicket:
         if not self.allow_orders:
             return self._refuse_warmup(symbol, qty, OrderType.MARKET, tag)
+        if self.daily_conversion and not self._priced(symbol):
+            return self._refuse_unpriced(symbol, qty, OrderType.MARKET, tag)
         if self.after_close_to_moo and not self.carried:
             day, ms = self.clock()
-            if ms >= close_time_ms(day):
+            close_ms = close_time_ms(day)
+            if ms >= close_ms:
                 return self._rest(symbol, qty, OrderType.MARKET_ON_OPEN, tag)
+            if self.daily_conversion:
+                self._notice(DAILY_CONVERSION_NOTICE)
+                kind = (OrderType.MARKET_ON_CLOSE
+                        if close_ms - ms >= MOC_SUBMISSION_BUFFER_MS
+                        else OrderType.MARKET_ON_OPEN)
+                return self._rest(symbol, qty, kind, tag)
         t = self._new_ticket(symbol, qty, OrderType.MARKET, tag)
         if self.carried:
             # no real market to execute against — rest until the next real
@@ -370,6 +438,21 @@ class OrderBook:
         return self._rest(symbol, qty, OrderType.MARKET_ON_OPEN, tag)
 
     def market_on_close(self, symbol, qty, tag="") -> OrderTicket:
+        if self.daily_conversion and self.allow_orders:
+            if not self._priced(symbol):
+                return self._refuse_unpriced(symbol, qty,
+                                             OrderType.MARKET_ON_CLOSE, tag)
+            # The buffer is measured to the NEXT close, so an order placed
+            # once the session is over is not late for it -- it belongs to
+            # the next session, and rests until that session's close.
+            day, ms = self.clock()
+            close_ms = close_time_ms(day)
+            if ms < close_ms and close_ms - ms < MOC_SUBMISSION_BUFFER_MS:
+                t = self._new_ticket(symbol, qty, OrderType.MARKET_ON_CLOSE,
+                                     tag)
+                self.refused_log.append(MOC_BUFFER_MESSAGE)
+                self._reject(t, MOC_BUFFER_MESSAGE)
+                return t
         return self._rest(symbol, qty, OrderType.MARKET_ON_CLOSE, tag)
 
     def trailing_stop(self, symbol, qty, trailing_amount,
@@ -399,14 +482,22 @@ class OrderBook:
         self._emit(t, OrderStatus.SUBMITTED)
         return t
 
-    def fill_at_session_edge(self, kind: OrderType, prices: dict):
+    def fill_at_session_edge(self, kind: OrderType, prices: dict,
+                             not_created_on=None):
         """Fill every resting MOO/MOC ticket at the session's open/close.
 
         Called by the backtester at the two moments those orders mean
         something; they are the only order kinds whose trigger is a clock
-        rather than a price, so they cannot live in check_resting."""
+        rather than a price, so they cannot live in check_resting.
+
+        `not_created_on` skips tickets created on that date. The session's
+        open is behind a daily strategy by the time its checks run, so a
+        market-on-open order one of them places belongs to the NEXT
+        session's open, not the one already gone."""
         for t in list(self._open):
             if not t.is_open() or t.order_type != kind:
+                continue
+            if not_created_on is not None and t.created[0] == not_created_on:
                 continue
             px = prices.get(t.symbol)
             if px:
