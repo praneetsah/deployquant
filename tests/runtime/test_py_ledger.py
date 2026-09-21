@@ -171,6 +171,35 @@ def test_a_resting_order_survives_a_confirmed_no_fill(book_with_sleeve):
     assert sleeve.qty["TQQQ"] == 100
 
 
+def test_an_at_close_ticket_survives_a_confirmed_no_fill_too_by_default(
+        book_with_sleeve):
+    """`cancel_edge_on_no_fill` is off unless a LIVE DAILY run turns it on
+    (backtester.py). At minute and second resolution, and in every backtest,
+    an at-close ticket the broker did not fill stays resting exactly as it
+    always has."""
+    book, sleeve = book_with_sleeve
+    assert book.cancel_edge_on_no_fill is False
+    sleeve.qty["TQQQ"] = 100
+    t = book.market_on_close("TQQQ", -100, tag="moc")
+    book.ledger = _ledger([])
+    book.fill_at_session_edge(t.order_type, {"TQQQ": 91.0})
+    assert t.is_open(), "the default must leave the ticket resting"
+    assert sleeve.qty["TQQQ"] == 100
+
+
+def test_the_daily_live_flag_cancels_that_same_ticket(book_with_sleeve):
+    """The one difference the flag makes, on the one path that sets it."""
+    book, sleeve = book_with_sleeve
+    book.cancel_edge_on_no_fill = True
+    sleeve.qty["TQQQ"] = 100
+    t = book.market_on_close("TQQQ", -100, tag="moc")
+    book.ledger = _ledger([])
+    book.fill_at_session_edge(t.order_type, {"TQQQ": 91.0})
+    assert not t.is_open()
+    assert t.status == OrderStatus.CANCELED
+    assert sleeve.qty["TQQQ"] == 100
+
+
 def test_an_empty_tag_is_not_passed_to_the_ledger_as_a_rule(book_with_sleeve):
     """take() matches rule tags with ==, so "" would match no tagged row and
     fall through to pool order. ir_engine states the same rule: never ""."""

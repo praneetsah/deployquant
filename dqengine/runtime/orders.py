@@ -42,12 +42,16 @@ UNPRICED_MESSAGE = (
     "warm up your algorithm with set_warmup, or use slice.contains(symbol) "
     "to confirm the Slice object has price before using the data.")
 
+# LEAN's own wording, with its last sentence corrected. LEAN says the
+# conversion is not applied in live trading; here it is, so a live run fills
+# where its backtest fills.
 DAILY_CONVERSION_NOTICE = (
     "Warning: market orders on daily resolution data sent during market "
     "hours are automatically converted into MarketOnClose orders (or "
     "MarketOnOpen near the close) to avoid filling at the stale previous "
-    "close. Note: in live trading this conversion is not applied, as the "
-    "order fills at the current market price.")
+    "close. The conversion applies in live trading too, so a live run fills "
+    "where its backtest fills. For intraday timing, subscribe at minute "
+    "resolution and keep the daily indicators.")
 
 
 @dataclass
@@ -127,6 +131,14 @@ class OrderBook:
         # and refuses a market-on-close order submitted inside the buffer;
         # see market() and market_on_close() for the two rules.
         self.daily_conversion = False
+        # Daily LIVE only (the backtester sets it; never in a backtest, never
+        # at minute or second resolution). An at-close or at-open ticket has
+        # exactly one moment to fill, and that moment is past by the time the
+        # broker's answer is decidable. Leaving it resting -- what every other
+        # kind of ticket does -- would make it try again at the NEXT session's
+        # edge, a day late, at a price the strategy never asked for. Cancel it
+        # instead. See _fill's `real == []` branch.
+        self.cancel_edge_on_no_fill = False
         # Where the daily conversion's one-time notice goes (the algorithm's
         # log). None = say nothing, which is every non-daily run.
         self.notice_out = None
@@ -236,12 +248,23 @@ class OrderBook:
                 self.unfilled_log.append(
                     f"{day} {ticket.symbol} {qty:+d} {ticket.tag or ''} "
                     f"— broker confirmed no fill")
-                if not ticket.is_open():
+                edge = (self.cancel_edge_on_no_fill
+                        and ticket.order_type in (OrderType.MARKET_ON_CLOSE,
+                                                  OrderType.MARKET_ON_OPEN))
+                if not ticket.is_open() or edge:
                     # A MARKET order never rested, so leaving it NEW would
                     # hang any user code waiting on ticket.status or on an
                     # on_order_event callback. It is not live anywhere —
                     # close it loudly. (A resting order takes the branch
                     # above and stays open: it IS still live at the broker.)
+                    #
+                    # `edge` is the daily-live exception. An at-close or
+                    # at-open ticket had one moment, and the broker has now
+                    # said it did not fill in it. Resting it would fire it at
+                    # the NEXT session's edge instead, a day late; the
+                    # strategy asked for this close, not tomorrow's.
+                    if edge:
+                        self._unrest(ticket)
                     ticket.status = OrderStatus.CANCELED
                     self._emit(ticket, OrderStatus.CANCELED,
                                message="broker confirmed no fill")

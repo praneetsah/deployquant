@@ -220,6 +220,29 @@ class DayBars:
         return float(self.close[-1])
 
 
+def derive_daily_row(bars: DayBars) -> tuple[float, float, float, float, float]:
+    """The session's daily bar from its minute bars: (o, h, l, c, v).
+
+    One definition, used by everything that turns minute bars into a daily
+    row, so a live day and a later backtest of the same day read the same
+    numbers. Open is the first bar's open, close the last bar's close, high
+    and low the session extremes, volume the sum.
+
+    Volume goes through `%g` because that is how the daily zip writes it
+    (six significant digits). A caller that summed the volume itself and
+    wrote it unformatted would store one number and read back another, and
+    a daily bar that changes when it is round-tripped is a strategy that
+    does not reproduce itself.
+
+    Raises on an empty session: there is no daily bar for a day with no
+    bars, and returning zeros would put a price of 0 in front of a
+    strategy."""
+    if bars is None or not bars.n:
+        raise ValueError("no bars to derive a daily row from")
+    return (float(bars.open[0]), float(bars.high.max()), float(bars.low.min()),
+            float(bars.close[-1]), float(f"{float(bars.volume.sum()):g}"))
+
+
 class DataStore:
     def __init__(self, data_root: str):
         self.root = data_root

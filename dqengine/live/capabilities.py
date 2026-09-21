@@ -86,6 +86,12 @@ _NEVER_EMULATED = frozenset({base.MARKET, base.LIMIT})
 # the question is not "can the broker take it" but "would it ever get
 # there". Approving one means deploying a strategy that believes it is
 # protected by an order nothing sends.
+#
+# DAILY is the exception, and `daily=True` below lifts it. On daily data an
+# at-close order is not an order the platform cannot carry: it is where the
+# strategy's backtest fills, and the live payload publishes it in the
+# executor's `close_orders` channel a minute before the close. See
+# live_python's daily preview.
 PYTHON_UNTRANSMITTED = frozenset({
     base.MARKET_ON_CLOSE,
     base.LIMIT_ON_CLOSE,
@@ -130,7 +136,8 @@ def resolve(caps, order_type: str, transmittable: bool = True) -> Resolution:
         f"has no emulation for them")
 
 
-def unsupported_for_deploy(caps, order_types, kind: str = "blocks") -> list:
+def unsupported_for_deploy(caps, order_types, kind: str = "blocks",
+                           daily: bool = False) -> list:
     """Every requested type this venue can neither take nor emulate.
 
     Returned for the DEPLOY path: a strategy pointed at a venue that cannot
@@ -138,10 +145,16 @@ def unsupported_for_deploy(caps, order_types, kind: str = "blocks") -> list:
     family as one that collides with another sleeve's symbols. Discovering
     it when an order fails to go out is too late — by then the strategy
     believes it has a position, or a protection, that does not exist.
+
+    `daily` says the strategy's data is daily, where the live payload DOES
+    carry an at-close order to the executor. It lifts PYTHON_UNTRANSMITTED
+    and nothing else: the venue's own answer is unchanged, so a broker that
+    can neither take nor emulate a type still refuses.
     """
     out = []
     for t in sorted(set(order_types or ())):
-        transmittable = not (kind == "python" and t in PYTHON_UNTRANSMITTED)
+        transmittable = not (kind == "python" and not daily
+                             and t in PYTHON_UNTRANSMITTED)
         r = resolve(caps, t, transmittable=transmittable)
         if not r.ok:
             out.append(r)
@@ -211,7 +224,7 @@ _PY_ORDER_METHODS = {
 }
 
 
-def python_order_types(code: str) -> set:
+def python_order_types(code: str, daily: bool = False) -> set:
     """Every order type a python strategy's SOURCE can place.
 
     The manifest pass runs initialize() only, and orders are placed at
@@ -228,6 +241,13 @@ def python_order_types(code: str) -> set:
     through a name this cannot see (getattr, an alias, a dispatch table), so
     this narrows the deploy-time gap rather than closing it. The executor's
     per-order ladder remains the backstop, which is why that path stays.
+
+    `daily` adds MARKET_ON_CLOSE wherever the source places a MARKET order.
+    On daily data a market order placed while the session is open becomes
+    one (LEAN's conversion, `OrderBook.market`), and a scan of the source
+    sees `market_order` / `set_holdings` / `liquidate`, never the conversion.
+    Without this the venue's emulation note would not appear in the deploy
+    dialog for the strategies that will actually use it.
     """
     import ast
 
@@ -247,6 +267,8 @@ def python_order_types(code: str) -> set:
         hit = _PY_ORDER_METHODS.get(_snake(name))
         if hit:
             out.add(hit)
+    if daily and base.MARKET in out:
+        out.add(base.MARKET_ON_CLOSE)
     return out
 
 

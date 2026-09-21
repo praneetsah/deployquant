@@ -478,11 +478,12 @@ def test_set_holdings_rounds_a_partial_adjustment_differently():
     assert [o["sym"] for o in same_day] == ["SGOV"]      # LEAN: SPY, SGOV
 
 
-# ------------------------------------------------- the gate holds both ways
+# ------------------------------------------------------------- the gate
 #
-# Everything above is gated on `daily mode AND not live`. These two say what
-# that gate keeps out: a minute-resolution backtest, and a live run whose
-# subscriptions happen to be daily. Neither may move.
+# Everything above is gated on daily mode. A minute-resolution backtest is
+# outside it and may not move. A live run in daily mode is INSIDE it as of
+# phase 2 -- the owner's decision is that a daily deployment fills where its
+# backtest fills -- and it needs the driver's clock to be there.
 
 class Scheduled(QCAlgorithm):
     RES = Resolution.MINUTE
@@ -533,26 +534,60 @@ def test_minute_resolution_is_untouched():
     assert [o["kind"] for o in res["orders"]] == ["market"]
 
 
-def test_live_daily_runs_keep_the_old_order():
-    """A live run in daily mode: the check still runs after the bar, at the
-    close, and its market order still fills at once. Phase 1 changes
-    backtests only, and a deployment's settled history must not move."""
+def _live_daily_days():
     from datetime import date
 
-    from conftest_helpers import SynthStore, synth_day
+    from conftest_helpers import synth_day
+    return {date(2026, 8, 24): synth_day(date(2026, 8, 24), [100, 101, 102]),
+            date(2026, 8, 25): synth_day(date(2026, 8, 25), [103, 104, 105])}
+
+
+def test_a_live_daily_run_without_a_clock_is_refused():
+    """The old rule ran a daily live check after the bar, at the close, and
+    filled its market order there. Falling back to that silently would make
+    a deployment's fills stop matching its backtest, so a live daily run
+    with no clock does not run at all."""
+    from conftest_helpers import SynthStore
     from dqengine.runtime.backtester import RunOverrides
 
-    days = {date(2026, 8, 24): synth_day(date(2026, 8, 24), [100, 101, 102]),
-            date(2026, 8, 25): synth_day(date(2026, 8, 25), [103, 104, 105])}
+    class Daily(Scheduled):
+        RES = Resolution.DAILY
+
+    res = PyBacktester(Daily(), SynthStore(_live_daily_days()),
+                       overrides=RunOverrides(project_calendar=True)).run()
+    assert "error" in res
+    assert "live_today" in res["error"]["message"]
+
+
+def test_a_live_daily_run_with_a_clock_follows_the_lean_order():
+    """With the clock it is the backtest: the check runs at 15:45 on the
+    previous session's close, and the market order it places converts to
+    market-on-open and fills at the next session's open."""
+    from datetime import date
+
+    from conftest_helpers import SynthStore
+    from dqengine.runtime.backtester import RunOverrides
 
     class Daily(Scheduled):
         RES = Resolution.DAILY
 
     algo = Daily()
-    res = PyBacktester(algo, SynthStore(days),
-                       overrides=RunOverrides(project_calendar=True)).run()
+    res = PyBacktester(
+        algo, SynthStore(_live_daily_days()),
+        overrides=RunOverrides(project_calendar=True,
+                               end=date(2026, 8, 25),
+                               live_today=date(2026, 8, 25),
+                               live_now_ms=86_400_000)).run()
     assert "error" not in res, res.get("error")
-    assert algo.seen == [("2026-08-24 16:00:00", 102.0)]
-    assert [(f["day"], f["ms"], f["px"]) for f in res["fills"]] == [
-        ("2026-08-24", 57_600_000, 102.0)]
-    assert [o["kind"] for o in res["orders"]] == ["market"]
+    # 15:45, not 16:00, and on the previous session's close
+    assert algo.seen == [("2026-08-24 15:45:00", 0.0),
+                         ("2026-08-25 15:45:00", 102.0)]
+    # 15:45 is inside the 15.5-minute buffer, so the market order becomes a
+    # market-on-open for the NEXT session's open: it rests, it does not fill
+    # at today's close, and the payload says which day placed it
+    assert res["fills"] == []
+    assert [(o["type"], o["created_day"])
+            for o in res["position"]["open_orders"]] == [("market_on_open",
+                                                          "2026-08-25")]
+    assert res["daily_live"] == {"today": "2026-08-25", "bar_applied": True,
+                                 "next_fire_ms": None}

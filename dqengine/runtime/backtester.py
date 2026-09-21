@@ -48,6 +48,16 @@ class RunOverrides:
     # external cash landing at that session's open; a non-session day rolls
     # forward to the next session, exactly as the IR engine applies it
     cash_events: list = field(default_factory=list)
+    # LIVE DAILY only: the driver's clock. A daily session hands the
+    # algorithm one bar and it lands at the close, so between the open and
+    # close+60s the day exists but its bar does not. The driver says which
+    # day is in progress (live_today) and what time it is (live_now_ms, ms
+    # since midnight ET); the run then opens that day as a PARTIAL session,
+    # runs the checks already due, and stops. A daily live run without both
+    # is refused -- falling back to the old order would move settled
+    # history. Ignored at every other resolution.
+    live_today: date | None = None
+    live_now_ms: int | None = None
 
 
 def _dt(day: date, ms: int) -> datetime:
@@ -130,6 +140,15 @@ class PyBacktester:
         for day in sessions:
             self._begin_session(day)
             if not self._day_bars:
+                if self._partial_daily:
+                    # live daily, today: the session is open and its bar is
+                    # not in yet. Run the checks already due and stop --
+                    # no bar, no on_data, no session end, no equity mark.
+                    self._ms = int(self._live_now_ms)
+                    algo.time = _dt(day, self._ms)
+                    self._run_pre_bar_events(day, upto_ms=self._live_now_ms)
+                    if algo._quit:
+                        break
                 continue                     # no session at all for this day
             # quiet-bar fast path (batch only): a live driver never calls
             # it, because it reads "last bar" from what is AVAILABLE and a
@@ -195,16 +214,47 @@ class PyBacktester:
         # calendar over the union of available days for the subscriptions
         daily_mode = self._daily_mode = all(sec.resolution == Resolution.DAILY
                                             for sec in algo.securities.values())
-        # A daily BACKTEST session hands the algorithm one bar, and it lands
-        # at the close. Running the session's scheduled events off that bar
-        # shows them a close the exchange has not printed yet, so in daily
-        # mode the ones due before the close run first, at their own clock
-        # time, on the previous session's prices -- and the orders they place
+        # A daily session hands the algorithm one bar, and it lands at the
+        # close. Running the session's scheduled events off that bar shows
+        # them a close the exchange has not printed yet, so in daily mode
+        # the ones due before the close run first, at their own clock time,
+        # on the previous session's prices -- and the orders they place
         # convert the way LEAN converts them (see OrderBook.market). Minute
-        # and second runs keep the data-first order; live keeps everything it
-        # had, here and in the book.
-        self._daily_lean_order = daily_mode and not self._live
+        # and second runs keep the data-first order, live included.
+        #
+        # A LIVE daily run follows the same rules, so a deployment fills
+        # where its backtest fills. It needs the driver's clock to do it:
+        # without one there is no way to tell an open session from a
+        # settled one. Refuse rather than fall back to the old rule, which
+        # would move settled history and freeze the deployment.
+        self._live_today = _parse_date(getattr(ov, "live_today", None))
+        self._live_now_ms = (int(ov.live_now_ms)
+                             if getattr(ov, "live_now_ms", None) is not None
+                             else None)
+        if self._live and daily_mode and (self._live_today is None
+                                          or self._live_now_ms is None):
+            raise ValueError(
+                "a live daily-resolution run needs the driver's clock "
+                "(live_today and live_now_ms). Without it the run cannot "
+                "tell an open session from a settled one, and the fills "
+                "would stop matching the backtest.")
+        self._daily_lean_order = daily_mode and (not self._live
+                                                 or self._live_today is not None)
         book.daily_conversion = self._daily_lean_order
+        # The two session edges LEAN settles from the day's bar: the
+        # market-on-open fill at the OPEN before on_data, and the
+        # market-on-close fill at the close. Backtests have always taken
+        # them; a live run took neither and filled market-on-open against
+        # the first bar after the handlers instead. Daily live takes the
+        # LEAN edges, because that is what makes its fills the backtest's.
+        self._lean_edges = (not self._live) or self._daily_lean_order
+        # Live daily only. An at-close or at-open ticket has one moment to
+        # fill; once the broker has said it did not fill in it, resting the
+        # ticket would send it at the NEXT session's edge, a day after the
+        # strategy asked for it. Cancel instead. Every other resting kind --
+        # and every minute or second run -- keeps the ticket, because a
+        # protective stop IS still live at the broker.
+        book.cancel_edge_on_no_fill = self._live and self._daily_lean_order
         book.notice_out = algo.log
         # the bar span is the RESOLUTION, never inferred from a symbol's
         # first two bars of the day: a thin ETF that prints at 09:30 and
@@ -217,6 +267,7 @@ class PyBacktester:
                         for sec in algo.securities.values()) else 60_000)
         if daily_mode:
             self._daily_map = {s: (self.store.load_daily(s) or {}) for s in syms}
+            self._drop_unsettled_today()
             all_days = sorted(set().union(*[set(m) for m in self._daily_map.values()]))
         else:
             self._daily_map = {}
@@ -236,6 +287,14 @@ class PyBacktester:
         if getattr(self.overrides, "project_calendar", False):
             last = all_days[-1]
             all_days = store_days + project_sessions(last, last + _td(days=14))
+        # Live daily: today's session is open and its bar does not exist
+        # yet. It is a session to RUN, not merely a calendar entry, and it
+        # has to be in the calendar before the date rules are asked about
+        # it -- a long data outage could otherwise leave it outside the
+        # 14-day projection.
+        partial = self._partial_day = self._partial_session_day(store_days, end)
+        if partial is not None and partial not in all_days:
+            all_days = sorted(set(all_days) | {partial})
         cal = self._cal = SessionCalendar(all_days)
         algo._calendar = cal
         for sec in algo.securities.values():
@@ -260,6 +319,12 @@ class PyBacktester:
                          len(store_days))
         warm_from = max(0, first_idx - algo._warmup_days)
         sessions = self._sessions = [d for d in store_days[warm_from:] if d <= end]
+        if partial is not None:
+            # the one exception to "store days only": today's bar lands a
+            # minute after the close, and the checks due before it are due
+            # NOW. _begin_session opens it with no bars and _run steps the
+            # events that are already due and nothing else.
+            sessions = self._sessions = sessions + [partial]
         self._session_pos = {d: i for i, d in enumerate(sessions)}
 
         algo.is_warming_up = algo._warmup_days > 0 and bool(sessions) and \
@@ -292,6 +357,10 @@ class PyBacktester:
         self._pre_bar_events: list = []
         self._warm = False
         self._carried_day = False
+        # today's session is open and has no bar yet (live daily only)
+        self._partial_daily = False
+        # did today's bar land in this run? reported as daily_live.bar_applied
+        self._daily_bar_applied = False
         self._ends_map: dict[int, list[tuple[str, int]]] = {}
         # prev_t / first_bar_done gate scheduled-event firing and the
         # market-on-open fill. They are reset ONLY by _begin_session, never
@@ -306,6 +375,51 @@ class PyBacktester:
 
         self._last_emit = time.monotonic()   # throttle counts from run start
         return sessions
+
+    def _drop_unsettled_today(self) -> None:
+        """Live daily: refuse a row for today until its session has settled.
+
+        The exporter already skips a day in progress, so this is the second
+        defence and it is the cheap one. A row aggregated from half a
+        session carries a close the exchange never printed, and a strategy
+        that decides on it decides on a number that changes under it -- and
+        having decided, it cannot un-decide, because the fill is settled
+        history. A minute after the real close (an early close included)
+        the row is the day's, and this stops dropping it."""
+        today = self._live_today
+        if not self._live or today is None or self._live_now_ms is None:
+            return
+        if self._live_now_ms >= close_time_ms(today) + 60_000:
+            return
+        dropped = [s for s, m in self._daily_map.items()
+                   if m.pop(today, None) is not None]
+        if dropped:
+            print(f"[daily] {today.isoformat()} is still open: dropped the "
+                  f"stored daily row for {sorted(dropped)} and will run the "
+                  f"day as a partial session", flush=True)
+
+    def _partial_session_day(self, store_days: list, end: date):
+        """Today, when it is a session that has begun and whose bar has not
+        landed yet; None otherwise.
+
+        Four conditions, all of them necessary. The day must be a scheduled
+        session -- a holiday is not projected, so nothing runs on one. It
+        must be inside the run's window. The market must have opened: before
+        09:30 there is no session to be in. And the store must not already
+        hold the day, because then the bar HAS landed and the day runs as
+        an ordinary session, bar and all."""
+        from dqengine.runtime.core.data import project_sessions
+        from datetime import timedelta as _td
+        if not (self._live and self._daily_lean_order):
+            return None
+        today, now = self._live_today, self._live_now_ms
+        if today is None or now is None or today in store_days:
+            return None
+        if today > end or now < REG_OPEN_MS:
+            return None
+        if project_sessions(today - _td(days=1), today) != [today]:
+            return None
+        return today
 
     def _emit_progress(self, day, pct, force=False):
         if self.progress_cb is None:
@@ -399,7 +513,31 @@ class PyBacktester:
         self._prev_t = -1
         self._primed_through = -1
         self._first_bar_done = False
+        self._partial_daily = False
+        if daily_mode and self._live and day == self._live_today:
+            self._daily_bar_applied = bool(day_bars)
         if not day_bars:
+            if day == self._partial_day and not warm:
+                # Live daily, today, before its bar exists. The session IS
+                # open and the checks due before the close are due now, so
+                # the day opens with no data: _run steps the events already
+                # due, on the previous session's prices and indicators --
+                # the same state a backtest of this day shows them -- and
+                # nothing else. No bar, no on_data, no session end, no
+                # equity mark. When the bar lands (close+60s) the same
+                # replay runs the whole day as a backtest does.
+                self._day = day
+                self._partial_daily = True
+                self._day_events = []
+                self._pre_bar_events = sorted(
+                    (ms, ev) for ms, ev in self._events_for(day)
+                    if ms < close_ms)
+                # not a carried session: there is nothing to execute
+                # against, but there is nothing synthesized either, and a
+                # market order placed now must convert (LEAN's rule), not
+                # rest for the next real bar.
+                book.carried = False
+                book.after_close_to_moo = True
             return
         self._day = day
 
@@ -418,11 +556,7 @@ class PyBacktester:
             for s in day_bars:
                 spans[s] = span
         self._spans = spans
-        day_events = []
-        if not warm:
-            for ev in algo.schedule.events:
-                if ev.date_rule.matches(day, self._cal):
-                    day_events.append((ev.time_rule.fire_ms(open_ms, close_ms), ev))
+        day_events = self._events_for(day) if not warm else []
         if self._daily_lean_order:
             # Split at the close: what is due while the session is open runs
             # before the bar (_step_bar), in fire order; what is due at or
@@ -440,10 +574,20 @@ class PyBacktester:
         # (IR's LEAN-validated carried-day semantic); resting orders are
         # not evaluated at all.
         book.carried = carried_day
-        # backtests follow LEAN across the close (see OrderBook.market); a
-        # live run keeps filling at once, as it always has. `warm` here is a
-        # WARM-UP day, not a live engine: live is self._live.
-        book.after_close_to_moo = not warm and not self._live
+        # backtests follow LEAN across the close (see OrderBook.market), and
+        # so does a daily live run, because the conversion is what makes its
+        # fills the backtest's. A minute or second live run keeps filling at
+        # once, as it always has. `warm` here is a WARM-UP day, not a live
+        # engine: live is self._live.
+        book.after_close_to_moo = not warm and (not self._live
+                                                or self._daily_lean_order)
+
+    def _events_for(self, day: date) -> list:
+        """[(fire_ms, event)] for every scheduled event due on `day`."""
+        close_ms = close_time_ms(day)
+        return [(ev.time_rule.fire_ms(REG_OPEN_MS, close_ms), ev)
+                for ev in self.algo.schedule.events
+                if ev.date_rule.matches(day, self._cal)]
 
     def _fast_forward(self, day: date):
         """Batch-only. Try the quiet-bar fast path over the session; build
@@ -524,7 +668,7 @@ class PyBacktester:
                 # the session's end, which is where it is still fed.
                 self._feed_indicators(s, None, minute=False, day_bars=b)
             self._feed_consolidators(s, bar)
-        if (not self._first_bar_done and not self._warm and not self._live
+        if (not self._first_bar_done and not self._warm and self._lean_edges
                 and not carried_day):
             # market-on-open: LEAN fills it at the session's first OPEN and
             # before the algorithm is handed that bar -- a strategy that
@@ -583,15 +727,16 @@ class PyBacktester:
             algo.securities[s].invested = sleeve.qty.get(s, 0) != 0
         if not self._first_bar_done:
             self._first_bar_done = True
-            if (self._warm or self._live) and not carried_day:
-                # live: unchanged -- against the first bar, after the handlers
+            if (self._warm or not self._lean_edges) and not carried_day:
+                # minute/second live and warm-up days: unchanged -- against
+                # the first bar, after the handlers
                 from .enums import OrderType as _OT
                 book.fill_at_session_edge(_OT.MARKET_ON_OPEN, prices)
         self._prev_t = t
 
-    def _run_pre_bar_events(self, day: date) -> None:
-        """Daily backtests: the events due while the session is open, run
-        before the day's bar is applied.
+    def _run_pre_bar_events(self, day: date, upto_ms: int | None = None) -> None:
+        """Daily runs: the events due while the session is open, run before
+        the day's bar is applied.
 
         Each runs at its own clock time with prices, indicators and history
         still through the PREVIOUS session — the only state the algorithm
@@ -600,10 +745,16 @@ class PyBacktester:
         they place converts in OrderBook.market, and the resting tickets
         that result fill once the bar lands, below: LEAN settles
         market-on-open and market-on-close when the daily bar arrives, so
-        an order cancelled at 15:45 is still cancellable."""
+        an order cancelled at 15:45 is still cancellable.
+
+        `upto_ms` is the live partial session: only the events already due
+        run, and the rest wait for a later tick. The list is in fire order,
+        so the first one that is not due ends it."""
         algo = self.algo
         close_ms = self._ms
         for fire_ms, ev in self._pre_bar_events:
+            if upto_ms is not None and fire_ms > upto_ms:
+                break
             self._ms = fire_ms
             algo.time = _dt(day, fire_ms)
             ev.callback()
@@ -736,6 +887,16 @@ class PyBacktester:
                                   and t.trailing_as_percentage) else None)}
                 for t in book._open],
         }
+        daily_live = self._live and self._daily_lean_order
+        if daily_live:
+            # The day a resting ticket was created on. The live layer needs
+            # it to tell a market-on-open ticket placed TODAY (which fills
+            # at tomorrow's open, and whose quantity the broker must not be
+            # asked for yet) from one placed yesterday (which fills at the
+            # open that has just happened). Added only here, so a minute
+            # deployment's payload is byte for byte what it was.
+            for entry, t in zip(position["open_orders"], book._open):
+                entry["created_day"] = t.created[0].isoformat()
         s_fills = s_eq = 0
         s_logs = [0, 0, 0]
         if since:
@@ -807,7 +968,28 @@ class PyBacktester:
                                getattr(self, "_calendar_holes", [])],
             "fast_path": {"eligible": self._fast_on, "sessions": self._fast_sessions,
                           "of": len(self._sessions)},
+            # Live daily only; absent everywhere else, so the driver can
+            # assert on it and an old image fails loudly instead of ticking
+            # a daily deployment on the old rule.
+            **({"daily_live": {
+                "today": self._live_today.isoformat(),
+                "bar_applied": bool(self._daily_bar_applied),
+                "next_fire_ms": self._next_daily_fire_ms(),
+            }} if daily_live else {}),
         }
+
+    def _next_daily_fire_ms(self):
+        """The next scheduled fire still to come today, ms since midnight
+        ET, or None. The driver hands it to the worker, whose precision
+        wake then ticks the deployment at the fire rather than on whatever
+        bar event happens to arrive next. Once the bar has landed there is
+        nothing left to fire today: the events at or after the close ran
+        with it."""
+        if not self._partial_daily or self._live_now_ms is None:
+            return None
+        pending = [ms for ms, _ in self._pre_bar_events
+                   if ms > self._live_now_ms]
+        return min(pending) if pending else None
 
     def _fast_day(self, day, day_bars, spans, day_events, carried, warm):
         """Quiet-bar session: visit only the first/last bar, scheduled-event
@@ -872,7 +1054,7 @@ class PyBacktester:
                     applied[s] = idx
                 if int(ends_s[idx]) == t:
                     at_t.append((s, idx))
-            if (not carried and not warm and not self._live
+            if (not carried and not warm and self._lean_edges
                     and not self._first_bar_done):
                 # same rule as the walk: market-on-open at the first open,
                 # before any handler runs. Marked done so a mid-day demotion
@@ -894,9 +1076,9 @@ class PyBacktester:
                                        exclude_created=(day, t))
             for s in syms:
                 algo.securities[s].invested = sleeve.qty.get(s, 0) != 0
-            if self._live and not self._first_bar_done:
-                # a live replay: where the walk fills it for a live run,
-                # against the first bar, after the handlers
+            if not self._lean_edges and not self._first_bar_done:
+                # a minute/second live replay: where the walk fills it for
+                # such a run, against the first bar, after the handlers
                 self._first_bar_done = True
                 if not carried:
                     from .enums import OrderType as _OT
@@ -1062,7 +1244,9 @@ def run_python_backtest(code: str, data_root: str,
                       end=_parse_date(overrides.get("end")),
                       project_calendar=bool(overrides.get("project_calendar")),
                       cash=overrides.get("cash"),
-                      cash_events=list(overrides.get("cash_events") or []))
+                      cash_events=list(overrides.get("cash_events") or []),
+                      live_today=_parse_date(overrides.get("live_today")),
+                      live_now_ms=overrides.get("live_now_ms"))
 
     if manifest_only:
         had = _os.environ.get("DQENGINE_MANIFEST_PASS")

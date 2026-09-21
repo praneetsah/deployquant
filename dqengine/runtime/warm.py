@@ -120,7 +120,7 @@ class WarmPyEngine:
             raise RuntimeError(self.dead)
         t0 = time.monotonic()
         try:
-            for day in self._bt._setup():
+            for day in self._setup_or_refuse_daily():
                 if day > through:
                     break
                 self._run_stored_day(day)
@@ -131,6 +131,31 @@ class WarmPyEngine:
             self.stale(f"warm failed: {e!r}")
             raise
         return time.monotonic() - t0
+
+    # A daily session is ONE bar and it lands at the close. advance() cannot
+    # step a session's lone first bar until a second one arrives, so a daily
+    # strategy on a warm engine would sit here every day holding yesterday's
+    # position while its checks never ran. The live path serves the replay
+    # for daily deployments; this refusal is the belt to that pair of braces,
+    # so a future caller that forgets gets an error rather than a silence.
+    DAILY_REFUSAL = ("a daily-resolution strategy cannot run on a warm "
+                     "engine: its session is a single bar, which the engine "
+                     "cannot step until a second one arrives. Daily "
+                     "deployments run on the replay path.")
+
+    def _setup_or_refuse_daily(self):
+        bt = self._bt
+        try:
+            sessions = bt._setup()
+        except Exception:
+            # _setup raises for a live daily run with no clock, and a warm
+            # engine never has one. Name the real reason.
+            if getattr(bt, "_daily_mode", False):
+                raise RuntimeError(self.DAILY_REFUSAL) from None
+            raise
+        if bt._daily_mode:
+            raise RuntimeError(self.DAILY_REFUSAL)
+        return sessions
 
     def _run_stored_day(self, day: date) -> None:
         """A COMPLETE stored day: identical to one iteration of `_run`,

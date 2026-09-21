@@ -32,7 +32,10 @@ def main(workdir: str) -> int:
             code = fh.read()
 
         from dqengine.runtime import run_python_backtest
-        overrides = {k: cfg[k] for k in ("start", "end", "cash", "project_calendar", "cash_events", "bar_ms")
+        overrides = {k: cfg[k] for k in ("start", "end", "cash", "project_calendar",
+                                         "cash_events", "bar_ms",
+                                         # live daily only: the driver's clock
+                                         "live_today", "live_now_ms")
                      if cfg.get(k) is not None}
         data_root = cfg.get("data_root", "/data")
 

@@ -299,6 +299,14 @@ market-on-open once the session is within 15.5 minutes of closing, which is
 what LEAN does with it. Both are tested against recordings from LEAN in
 `tests/runtime/fixtures/lean_daily/`.
 
+A live run on daily data fills where its backtest fills: that day's close, or
+the next session's open once the session is within 15.5 minutes of closing.
+LEAN differs from its own backtest here. Its live mode skips the conversion
+and sends the order at the market price of the minute the strategy placed it,
+so a LEAN backtest and a LEAN live run of the same daily strategy fill at
+different prices. For intraday timing, subscribe at minute resolution and keep
+the daily indicators.
+
 LEAN covers more today. The plan is to bring DQengine to parity with it, and
 then past it. Open an issue for anything you want sooner. Feature by feature:
 
