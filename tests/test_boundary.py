@@ -13,6 +13,7 @@ the adapters crossed into dqengine.adapters.)
 import ast
 import os
 import re
+import sys
 
 import pytest
 
@@ -170,6 +171,90 @@ def test_runtime_never_imports_the_rest_of_dqengine_or_a_plugin():
         if hits:
             bad.append((os.path.relpath(f, DIST), hits))
     assert not bad, f"dqengine.runtime must sit below the rest of dqengine: {bad}"
+
+
+def test_the_live_driver_imports_only_dqengine_and_the_standard_library():
+    """The single-deployment driver is the piece that was cut out of a hosted
+    platform (spec 2026-09-19 §8), so it is the piece most likely to carry a
+    private import back across with it -- `import pydata` inside a function,
+    a model at the top of a file. It reaches its rows, its bars and the order
+    signal through `dqengine.live.driver.ports` and nothing else, which means
+    its whole import surface is dqengine plus the standard library: not even
+    numpy or pandas, and no optional extra, so a backtest-only install still
+    imports it.
+
+    Stated as the closed set rather than a denylist, because the failure this
+    catches is an import nobody thought to forbid."""
+    allowed = set(sys.stdlib_module_names) | {"dqengine", "__future__"}
+    bad = []
+    for f in _py_files(os.path.join(DIST, "dqengine", "live", "driver")):
+        hits = sorted(n for n in set(_imports(f)) if n not in allowed)
+        if hits:
+            bad.append((_key(f), hits))
+    assert not bad, f"the live driver imports outside dqengine + stdlib: {bad}"
+
+
+def _live_extra_imports():
+    """The import names of the `live` extra's declared dependencies, read out
+    of the distribution's own pyproject. Keeping the rule below tied to the
+    declaration rather than to a hand-kept list means a new import in the live
+    stack fails here until someone declares what installs it, which is the
+    failure a self-hoster would otherwise hit as an ImportError at 09:30."""
+    path = os.path.join(DIST, "pyproject.toml")
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    m = re.search(r"^live = \[(.*?)\]", text, re.M | re.S)
+    assert m, f"{path}: no `live` extra parsed -- shape changed?"
+    dists = re.findall(r'"([A-Za-z0-9_.-]+)', m.group(1))
+    # install name -> import name where they differ
+    rename = {"psycopg2-binary": "psycopg2"}
+    return {rename.get(d, d).replace("-", "_") for d in dists}
+
+
+def test_the_live_stack_imports_only_what_the_live_extra_installs():
+    """`dqengine.live` is the half that talks to a database, a vault and a
+    bus, so unlike the driver it cannot be stdlib-only. It can still be a
+    closed set: dqengine, the standard library, and exactly the distributions
+    `pip install deployquant[live]` brings in. `dqengine/live/__init__.py`
+    imports nothing, so a backtest-only install still imports the package."""
+    allowed = (set(sys.stdlib_module_names) | {"dqengine", "__future__"}
+               | _live_extra_imports())
+    live = os.path.join(DIST, "dqengine", "live")
+    driver = os.path.join(live, "driver")
+    bad = []
+    for f in _py_files(live):
+        if f.startswith(driver + os.sep):
+            continue                      # stricter rule of its own, above
+        hits = sorted(n for n in set(_imports(f)) if n not in allowed)
+        if hits:
+            bad.append((_key(f), hits))
+    assert not bad, f"the live stack imports outside dqengine[live]: {bad}"
+
+
+def test_the_live_package_init_imports_nothing():
+    """Importing `dqengine.live` must not pull SQLAlchemy in. The driver, the
+    book and the second-bar consolidator are reached through it on a
+    backtest-only install, where none of the live extra is present."""
+    with open(os.path.join(DIST, "dqengine", "live", "__init__.py"),
+              encoding="utf-8") as fh:
+        tree = ast.parse(fh.read())
+    imports = [n for n in tree.body if isinstance(n, (ast.Import,
+                                                      ast.ImportFrom))]
+    assert not imports, "dqengine/live/__init__.py must stay import-free"
+
+
+def test_the_engine_proper_never_imports_the_live_driver():
+    """The mirror of R1 for the package that arrived last: `dqengine.runtime`
+    is the backtester, and it sits below the live stack. A runtime module that
+    reached up into the driver would drag the bus, the ports and the sandbox
+    client into every plain backtest."""
+    bad = []
+    for f in _py_files(RUNTIME):
+        hits = sorted(n for n in set(_full_imports(f))
+                      if n == "dqengine.live" or n.startswith("dqengine.live."))
+        if hits:
+            bad.append((os.path.relpath(f, DIST), hits))
+    assert not bad, f"dqengine.runtime imports the live stack: {bad}"
 
 
 def test_dqengine_never_imports_a_plugin():

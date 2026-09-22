@@ -81,7 +81,7 @@ _NEVER_EMULATED = frozenset({base.MARKET, base.LIMIT})
 
 
 # Order types a PYTHON strategy can place but the live layer cannot yet
-# project to the executor (live_python.project_orders has no channel for
+# project to the executor (the driver's project_orders has no channel for
 # them). They resolve to REFUSED regardless of what the venue supports:
 # the question is not "can the broker take it" but "would it ever get
 # there". Approving one means deploying a strategy that believes it is
@@ -90,8 +90,8 @@ _NEVER_EMULATED = frozenset({base.MARKET, base.LIMIT})
 # DAILY is the exception, and `daily=True` below lifts it. On daily data an
 # at-close order is not an order the platform cannot carry: it is where the
 # strategy's backtest fills, and the live payload publishes it in the
-# executor's `close_orders` channel a minute before the close. See
-# live_python's daily preview.
+# executor's `close_orders` channel a minute before the close. See the
+# live driver's daily preview (dqengine.live.driver.engine).
 PYTHON_UNTRANSMITTED = frozenset({
     base.MARKET_ON_CLOSE,
     base.LIMIT_ON_CLOSE,

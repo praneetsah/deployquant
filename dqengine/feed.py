@@ -29,10 +29,17 @@ from dqengine.runtime.core.data import REG_OPEN_MS, close_time_ms
 ET = ZoneInfo("America/New_York")
 BARS_URL = "https://data.alpaca.markets/v2/stocks/{sym}/bars"
 PAGE_LIMIT = 10000
+KEY_ENV, SECRET_ENV = "APCA_API_KEY_ID", "APCA_API_SECRET_KEY"
 
 
 class BarFeed(Protocol):
-    def fetch_days(self, symbol: str, start: date, end: date) -> dict[date, list[list]]: ...
+    def fetch_days(self, symbol: str, start: date, end: date,
+                   progress=None) -> dict[date, list[list]]:
+        """`progress(latest_day)` is called as each page lands, with the
+        latest session seen so far; a range of years is minutes of
+        pagination and a caller showing a bar needs to say so. An
+        implementation that fetches in one shot may ignore it, but it has
+        to accept it."""
 
 
 def bars_to_days(bars: list[dict]) -> dict[date, list[list]]:
@@ -60,10 +67,12 @@ def drop_in_progress(rows: list, now_ms: int, bar_ms: int = 60_000) -> list:
 
 class AlpacaBarFeed:
     def __init__(self, key_id: str, secret_key: str, feed: str = "iex",
-                 adjustment: str = "all", timeout: float = 60.0, sleep=time.sleep):
+                 adjustment: str = "all", timeout: float = 60.0, sleep=None):
         self.key_id, self.secret_key = key_id, secret_key
         self.feed, self.adjustment, self.timeout = feed, adjustment, timeout
-        self._sleep = sleep
+        # resolved here rather than as a default argument, so a caller that
+        # replaces time.sleep (a test, most of all) is still obeyed
+        self._sleep = sleep if sleep is not None else time.sleep
 
     def _get(self, url: str, params: dict) -> dict:
         req = urllib.request.Request(
@@ -80,7 +89,8 @@ class AlpacaBarFeed:
                 raise RuntimeError(f"Alpaca data API {e.code}: {body}") from e
         raise RuntimeError("Alpaca data API: retries exhausted")
 
-    def fetch_days(self, symbol: str, start: date, end: date) -> dict[date, list[list]]:
+    def fetch_days(self, symbol: str, start: date, end: date,
+                   progress=None) -> dict[date, list[list]]:
         params = {"timeframe": "1Min", "adjustment": self.adjustment, "feed": self.feed,
                   "limit": PAGE_LIMIT,
                   "start": f"{start.isoformat()}T00:00:00Z",
@@ -90,6 +100,8 @@ class AlpacaBarFeed:
             d = self._get(BARS_URL.format(sym=symbol.upper()), params)
             for day, rows in bars_to_days(d.get("bars") or []).items():
                 days.setdefault(day, []).extend(rows)
+            if progress and days:
+                progress(max(days))
             token = d.get("next_page_token")
             if not token:
                 break

@@ -1,0 +1,90 @@
+# Postgres, Redis and one dqengine process that trades one deployment.
+#
+#   cp deploy/.env.example deploy/.env      # fill in the three required vars
+#   docker compose -f deploy/docker-compose.yml up -d
+#   docker compose -f deploy/docker-compose.yml logs -f dqengine
+#
+# Paths are relative to this file. Put the algorithm in deploy/data/ and
+# name it in `ALGORITHM`; that directory is mounted at /srv/data and holds
+# the bar store too. `BROKER` is a broker id from `dqengine brokers`; its
+# plugin is installed at build time from `BROKER_PLUGIN`.
+#
+# There is no supervisor here. `restart: unless-stopped` is the whole
+# restart policy: the process exits 0 when the deployment is stopped and
+# non-zero when it crashed, and docker does the rest.
+#
+# This runs PAPER money. `--live` needs the connection's execution truth to
+# be `enforce`, and the commands that get an account there are not released
+# yet.
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dqengine
+      POSTGRES_DB: dqengine
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dqengine -d dqengine"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.2
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  dqengine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # the broker plugin this install trades through; one pip name
+        BROKER_PLUGIN: ${BROKER_PLUGIN:-deployquant-webull}
+        DEPLOYQUANT_VERSION: ${DEPLOYQUANT_VERSION:-}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dqengine:${POSTGRES_PASSWORD}@postgres:5432/dqengine
+      REDIS_URL: redis://redis:6379/0
+      DQENGINE_SECRET: ${DQENGINE_SECRET:?set DQENGINE_SECRET in .env}
+      DQENGINE_DATA_ROOT: /srv/data
+      PYDATA_ROOT: /srv/live-data
+      # a self-hosted box runs its own strategies: no container per tick
+      PYRUN_ENGINE_MODE: inproc
+      PYRUN_INPROC_ALLOWED: "1"
+      APCA_API_KEY_ID: ${APCA_API_KEY_ID:-}
+      APCA_API_SECRET_KEY: ${APCA_API_SECRET_KEY:-}
+      APCA_API_DATA_FEED: ${APCA_API_DATA_FEED:-iex}
+      ALPACA_KEY_ID: ${ALPACA_KEY_ID:-}
+      ALPACA_SECRET_KEY: ${ALPACA_SECRET_KEY:-}
+      DQENGINE_BROKER_CREDS: ${DQENGINE_BROKER_CREDS:-}
+    command:
+      - dqengine
+      - live
+      - /srv/data/${ALGORITHM:-algo.py}
+      - --broker
+      - ${BROKER:-webull}
+      - --feed
+      - ${FEED:-alpaca}
+    volumes:
+      - ./data:/srv/data
+      - livedata:/srv/live-data
+    stop_grace_period: 30s
+
+volumes:
+  pgdata:
+  livedata:

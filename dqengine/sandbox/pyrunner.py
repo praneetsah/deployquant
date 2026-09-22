@@ -179,15 +179,20 @@ def _make_workdir() -> str:
     return workdir
 
 
-def _write_run_files(workdir: str, code: str, run_cfg: dict) -> str:
+def _write_run_files(workdir: str, code: str, run_cfg: dict,
+                     data_root: str = "/data") -> str:
     """main.py first, run.json LAST — a warm container fires the moment
-    both exist, so run.json is the trigger. Returns the output filename."""
+    both exist, so run.json is the trigger. Returns the output filename.
+
+    `data_root` is where the RUNNER will read bars from: `/data` is the
+    container's mount, and the in-process mode below passes the real path
+    because there is no mount."""
     mode = run_cfg.get("mode", "full")
     out_name = "manifest.json" if mode == "manifest" else "result.json"
     with open(os.path.join(workdir, "main.py"), "w") as fh:
         fh.write(code)
     cfg = dict(run_cfg)
-    cfg["data_root"] = "/data"
+    cfg["data_root"] = data_root
     tmp = os.path.join(workdir, "run.json.tmp")
     with open(tmp, "w") as fh:
         json.dump(cfg, fh)
@@ -497,12 +502,39 @@ def run_streaming(code: str, run_cfg: dict, timeout_s: int | None = None,
                           "message": f"python runner unreachable: {e}"}}
 
 
+def run_inproc(code: str, run_cfg: dict) -> dict:
+    """One shot with no container: the sandbox's OWN entry point, called in
+    this process (PYRUN_ENGINE_MODE=inproc).
+
+    The run.json contract, the overrides it builds, the ledger it rebuilds
+    and the result it writes are `dqengine.runtime.sandbox_entry`'s, the
+    same module the image runs — so an in-process result is the container's
+    result, not a second implementation of it.
+
+    No isolation and no timeout: the same trade a self-hosted operator
+    makes for the long-lived engine (dqengine/runtime/inproc.py), for the
+    same reason. Every strategy on the box is their own."""
+    from dqengine.runtime import sandbox_entry
+    workdir = _make_workdir()
+    try:
+        out_name = _write_run_files(workdir, code, run_cfg,
+                                    data_root=_pydata_root())
+        sandbox_entry.main(workdir)
+        with open(os.path.join(workdir, out_name)) as fh:
+            return json.load(fh)
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+
 def run(code: str, run_cfg: dict, timeout_s: int | None = None) -> dict:
-    """The one entry the job worker calls. Local (dev): docker directly.
-    Prod: the sandbox service over the internal network (PYRUNNER_URL) — the
-    API container never holds docker.sock."""
+    """The one entry the job worker calls. In-process when the engine mode
+    says so (a self-hoster running their own code). Local (dev): docker
+    directly. Prod: the sandbox service over the internal network
+    (PYRUNNER_URL) — the API container never holds docker.sock."""
     url = os.environ.get("PYRUNNER_URL")
     if not url:
+        if ENGINE_MODE == "inproc":
+            return run_inproc(code, run_cfg)
         return run_sandboxed(code, run_cfg, data_dir=_pydata_root(),
                              timeout_s=timeout_s)
     body = json.dumps({"code": code, "run_cfg": run_cfg,

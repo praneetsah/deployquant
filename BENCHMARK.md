@@ -4,13 +4,15 @@ This file has the details behind the numbers in the README: what was run, how
 each number was measured, what the tests do not show, and how to run them
 yourself.
 
-There are two tests.
+There are three tests.
 
 1. A four-engine benchmark. DQengine, LEAN, NautilusTrader and backtrader run
    the same simple strategies on the same SPY minute bars.
 2. A fill-by-fill comparison with LEAN. Both engines run a more involved
    strategy (resting limit orders, margin, scheduled events), and every fill is
    compared.
+3. The live path, timed from a bar arriving to the order reaching the broker
+   adapter. DQengine only, and the "Live path" section says why.
 
 All runs were on one machine: an Apple M5 Mac with 32 GB of memory, Docker
 limited to 7.75 GiB.
@@ -279,11 +281,92 @@ opens.
 The tests that need exact dollar results run against one specific set of bars,
 which cannot be redistributed. They skip if you do not have that set.
 
-## Not measured yet
+## Live path
 
-Live trading latency, from a bar arriving to an order being handed to the
-broker, has not been measured against another engine. No number for it will be
-published until there is a test that runs both engines side by side.
+How long the live path takes between a bar arriving and the order reaching the
+broker adapter. This is DQengine only. There is no LEAN number for the same
+span, and why is at the end of this section.
+
+### What was run
+
+One live session in one process, composed the way `dqengine live` composes it:
+the ports, the feed runner, the bus, the intent consumer, the worker loop and
+the executor, all of it the shipped code. Three things are replaced. A scripted
+feed plays one real session's SPY or TQQQ minute bars, one bar at a time, as
+fast as the path will take them. A fake adapter records the moment `submit` is
+called and fills the order. The bus is in-process, with a run over a real Redis
+below for the difference that makes.
+
+Two things are moved so the run can happen outside market hours, and both
+change when, not what. The clock the engine and the worker loop read is set to
+the bar being delivered; both already take an injected clock, and without it
+the engine will not open a session that has not started. And the session being
+replayed is taken out of the history store, with the rest of the history linked
+through: a store that already holds that day hands the whole session to the
+first tick, so the strategy reaches its closing position there and no later bar
+can change its mind.
+
+| | |
+|---|---|
+| Machine | Apple M5 Mac with 32 GB, Postgres 16 in Docker on the same machine |
+| Session | SPY and TQQQ minute bars, 2026-09-18, 390 bars |
+| Measured | 360 bars per run, the first 30 dropped while the engine warms |
+| Strategies | `tools/bench_engines/ema_cross_fast.py` and `dqengine/examples/tqqq_weekly.py` |
+| Trials | 3 per strategy, a new process and a fresh schema each time |
+
+### Result
+
+Milliseconds. Median and 95th percentile over 360 bars, with the range across
+the three runs.
+
+| | EMA crossover | TQQQ weekly |
+|---|---|---|
+| Bar published to tick done, median | 7.3 to 8.1 | 7.5 to 8.4 |
+| Bar published to tick done, p95 | 8.2 to 10.7 | 8.6 to 11.7 |
+| Intent published to sweep done, median | 5.7 to 6.8 | 5.5 to 6.8 |
+| Intent published to sweep done, p95 | 7.1 to 8.6 | 7.1 to 8.6 |
+| Bar published to order at the adapter, median | 9.3 to 11.6 | no orders in the window |
+| Bar published to order at the adapter, p95 | 10.9 to 14.7 | no orders in the window |
+| Orders placed | 7 per run, 5 of them measured | 1 per run, before the measured window |
+
+The first span covers the bar event arriving on the bus, the worker's read, the
+warm engine stepping the bar, and the payload being written. The second covers
+the intent arriving on the bus, the consumer, and the executor's fast reconcile
+returning. The third is the whole thing: the same bar to `submit`.
+
+TQQQ weekly enters at the first session of the week, so its one order lands in
+the warm-up bars and there is nothing to report for the third span. Its first
+two spans are the cost of a bar that changes nothing, which is what most bars
+are.
+
+Over a real Redis on the same machine instead of the in-process bus, one run of
+the EMA crossover: 9.8 ms median bar to tick, 12.3 ms median bar to order. Redis
+adds about 2 ms across the two hops.
+
+### Where the LEAN comparison stops
+
+LEAN has no equivalent number here. Its live mode needs a brokerage plugin, a
+live node and a real-time data subscription, which is an environment we did not
+run, and a LEAN backtest has no bar-to-broker span to measure at all.
+
+The closest reproducible LEAN number is its backtest compute on the same
+session, the same algorithm and the same machine: 391 data points in 0.20 to
+0.22 seconds over three runs, 14 orders, which is about 0.55 ms per bar. That
+is a different quantity. It has no database, no order path, no broker
+reconcile and no process boundary in it, and DQengine's own backtest number for
+the same work is in the four-engine benchmark above. Putting the two side by
+side would compare a backtest loop against a live order path.
+
+What would make the comparison fair is running both engines live against the
+same paper brokerage and the same feed, and timing each from the bar to the
+order on the wire. No LEAN live latency number will be published here until
+that test exists.
+
+### Run it yourself
+
+The scripts are in [`tools/bench_live/`](tools/bench_live), with the commands
+in that folder's README. They need minute bars for the day and the history
+before it, and a scratch Postgres, which the harness drops and rebuilds.
 
 ---
 

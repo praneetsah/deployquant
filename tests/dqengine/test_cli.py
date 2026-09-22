@@ -93,9 +93,110 @@ def test_brokers_lists_the_installed_adapters(capsys):
     assert "alpaca-paper" in out and "alpaca" in out
 
 
-def test_live_is_honest_about_not_shipping_yet(capsys):
-    assert cli.main(["live", "algo.py"]) == 2
-    assert "0.2" in capsys.readouterr().err
+@pytest.fixture()
+def engine_mode_env(monkeypatch):
+    """`_engine_mode_notice` writes into os.environ on purpose (the runner
+    reads the mode at ITS import, which has not happened yet). monkeypatch
+    cannot undo a write it did not make, so this puts the two names back --
+    left set, they reach every subprocess a later test starts."""
+    names = ("PYRUN_ENGINE_MODE", "PYRUN_INPROC_ALLOWED", "PYRUNNER_URL")
+    before = {k: os.environ.get(k) for k in names}
+    for k in names:
+        monkeypatch.delenv(k, raising=False)
+    yield
+    for k, v in before.items():
+        os.environ.pop(k, None)
+        if v is not None:
+            os.environ[k] = v
+
+
+def test_live_needs_a_broker(capsys):
+    with pytest.raises(SystemExit) as e:
+        cli.main(["live", "algo.py"])
+    assert e.value.code == 2
+    assert "--broker" in capsys.readouterr().err
+
+
+def test_live_without_a_bus_says_so_and_changes_no_environment(
+        monkeypatch, capsys, engine_mode_env):
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    assert cli.main(["live", "algo.py", "--broker", "alpaca-paper"]) == 2
+    assert "REDIS_URL is not set" in capsys.readouterr().err
+    assert "PYRUN_ENGINE_MODE" not in os.environ, \
+        "a refusal leaves the process as it found it"
+
+
+def test_the_engine_mode_defaults_to_in_process_and_says_why(engine_mode_env):
+    note = cli._engine_mode_notice()
+    assert os.environ["PYRUN_ENGINE_MODE"] == "inproc"
+    assert os.environ["PYRUN_INPROC_ALLOWED"] == "1"
+    assert "no isolation" in note
+
+
+def test_a_chosen_engine_mode_is_kept(monkeypatch, engine_mode_env):
+    monkeypatch.setenv("PYRUN_ENGINE_MODE", "sandbox")
+    assert "sandbox" in cli._engine_mode_notice()
+    assert os.environ["PYRUN_ENGINE_MODE"] == "sandbox"
+
+
+def test_adopt_passes_its_flags_through_and_installs_the_ports(
+        monkeypatch, engine_mode_env, capsys):
+    """The command holds no logic: the flags reach `adopt.run`, and the
+    ports the comparison's replay reads are installed first."""
+    import dqengine.live.adopt as adopt_mod
+    import dqengine.live.run as run_mod
+    seen, installed = {}, []
+    monkeypatch.setattr(adopt_mod, "run",
+                        lambda *a, **k: seen.update(args=a, kw=k) or 0)
+    monkeypatch.setattr(run_mod, "install_ports",
+                        lambda **k: installed.append(k))
+
+    rc = cli.main(["adopt", "algo.py", "--broker", "alpaca",
+                   "--start", "2026-09-01", "--max-position-usd", "9000",
+                   "--no-refresh", "--dry-run"])
+
+    assert rc == 0
+    assert seen["args"] == ("algo.py", "alpaca")
+    assert seen["kw"]["start"] == date(2026, 9, 1)
+    assert seen["kw"]["max_position_usd"] == 9000.0
+    assert seen["kw"]["dry_run"] is True
+    assert seen["kw"]["refresh_bars"] is False
+    assert installed == [{"fallback": "alpaca"}]
+    assert "dqengine adopt: algo.py on alpaca" in capsys.readouterr().out
+
+
+def test_adopt_needs_a_broker(capsys):
+    with pytest.raises(SystemExit) as e:
+        cli.main(["adopt", "algo.py"])
+    assert e.value.code == 2
+    assert "--broker" in capsys.readouterr().err
+
+
+def test_the_caps_line_says_off_when_no_cap_is_set():
+    assert cli._caps_line({}).startswith("off")
+    assert "--max-order-usd" in cli._caps_line({"dry_run": True})
+    assert "--max-position-usd" in cli._caps_line({})
+
+
+def test_the_position_cap_flag_is_named_after_what_it_caps():
+    """It sets `max_position_notional`, the executor's per-POSITION cap.
+    The old name said account, which is not a cap the executor has."""
+    args = cli.build_parser().parse_args(
+        ["live", "a.py", "--broker", "alpaca", "--max-position-usd", "9000"])
+    assert args.max_position_usd == 9000.0
+    assert not hasattr(args, "max_account_usd")
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(
+            ["live", "a.py", "--broker", "alpaca", "--max-account-usd", "1"])
+    from dqengine.live import setup
+    assert setup.caps_settings(max_position_usd=9000) == {
+        "dry_run": False, "max_position_notional": 9000.0}
+
+
+def test_the_caps_line_prints_both_caps():
+    line = cli._caps_line({"max_order_notional": 2500.0,
+                           "max_position_notional": 9000.0})
+    assert line == "on: $2,500 per order, $9,000 per position"
 
 
 def test_version(capsys):

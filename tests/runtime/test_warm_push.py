@@ -137,7 +137,7 @@ def test_an_empty_push_steps_nothing_and_keeps_the_engine():
 
 def _merge(full, delta):
     """The driver's merge, duplicated here so the engine-side contract is
-    pinned independently of api/live_python.py."""
+    pinned independently of the driver's warm tick."""
     out = dict(delta)
     for k in ("fills", "equity_days", "equity", "flows"):
         out[k] = full[k] + delta[k]

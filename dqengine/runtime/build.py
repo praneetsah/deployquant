@@ -40,7 +40,8 @@ def ledger_from_payload(led):
 
 
 def build_engine(cfg: dict, code: str, data_root: str, engine_cls=None):
-    """`cfg` is the run.json the driver wrote (live_python._engine_cfg);
+    """`cfg` is the run.json the driver wrote (dqengine.live.driver.engine's
+    _engine_cfg);
     `data_root` is where THIS process reads bars from (/data in the
     sandbox, the host store in-process) -- never taken from cfg, so a
     run.json cannot point an engine at a path of its choosing."""

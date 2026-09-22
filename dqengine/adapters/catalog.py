@@ -53,9 +53,20 @@ def get_adapter(broker_id: str):
     """An adapter INSTANCE for a catalog id. Resolution goes through the
     entry-point loader (dqengine.brokers), so a venue is available exactly
     when its distribution is installed — the platform and a self-hoster
-    get the same answer from the same door."""
+    get the same answer from the same door.
+
+    The roster is not the list of ids that can be traded. It is the list of
+    LEAN brokerages, which is what the platform's broker dropdown renders;
+    `alpaca-paper` is installed, connectable and the CLI's default, and it
+    is not a LEAN brokerage. An id the roster does not carry is therefore
+    asked of the loader rather than refused here — the loader is the one
+    door that knows what is installed. Adding the id to the roster instead
+    would put an "Alpaca (paper)" row in front of every platform user, whose
+    Alpaca connection already carries paper or live in its credentials."""
     from dqengine import brokers
-    e = BROKERS[broker_id]                       # KeyError if unknown
+    e = BROKERS.get(broker_id)
+    if e is None:
+        return brokers.load(broker_id)     # UnknownBroker names what is installed
     if not e.implemented:
         raise LookupError(f"{e.name} adapter not implemented yet")
     try:

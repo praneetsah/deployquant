@@ -11,8 +11,14 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "PolyForm-Shield-1.0.0" }
 # plain urllib against the Trader API and the OAuth token endpoint: no
-# vendor SDK, so no optional extra
+# vendor SDK
 dependencies = ["deployquant>=0.1.0"]
+
+[project.optional-dependencies]
+# the market-data feed needs a websocket client to stream, and the bar
+# tables to write the REST minutes a silent stream missed. Both are
+# imported lazily; an install that just trades carries neither
+live = ["websockets>=12", "deployquant[live]>=0.1.0"]
 
 [project.urls]
 Homepage = "https://deployquant.com"
@@ -21,6 +27,10 @@ Issues = "https://github.com/praneetsah/deployquant/issues"
 
 [project.entry-points."dqengine.brokers"]
 schwab = "dqengine_schwab:SchwabAdapter"
+
+# the live market-data feed comes through its own group, the same door
+[project.entry-points."dqengine.feeds"]
+schwab = "dqengine_schwab:SchwabQuoteFeed"
 
 [tool.setuptools.packages.find]
 where = ["."]

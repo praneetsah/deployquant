@@ -33,6 +33,13 @@ dependencies = ["numpy>=1.26", "pandas>=2.1,<3"]
 # the sandbox HTTP service (dqengine.sandbox.service) is the only part that
 # needs a web framework; `pip install deployquant` stays numpy+pandas
 sandbox = ["fastapi>=0.110", "uvicorn>=0.27"]
+# the live stack: the websocket feed (imported lazily), and the executor
+# half -- rows in Postgres through SQLAlchemy, credentials under Fernet,
+# and the notification bus on Redis. A backtest-only install carries none
+# of it: dqengine.live.__init__ imports nothing, so these are only needed
+# by the modules that actually trade.
+live = ["websockets>=12", "sqlalchemy>=2.0", "psycopg2-binary>=2.9",
+        "redis>=5", "cryptography>=41"]
 
 [project.urls]
 Homepage = "https://deployquant.com"
@@ -49,6 +56,10 @@ dqengine = "dqengine.cli:main"
 [project.entry-points."dqengine.brokers"]
 alpaca = "dqengine.adapters.alpaca:AlpacaAdapter"
 alpaca-paper = "dqengine.adapters.alpaca_paper:AlpacaPaperAdapter"
+
+# Live market-data feeds are discovered the same way, in their own group.
+[project.entry-points."dqengine.feeds"]
+alpaca = "dqengine.feeds.alpaca:AlpacaQuoteFeed"
 
 # the Apache text travels with the LEAN-derived portions (Apache-2.0 s4(a))
 [tool.setuptools]

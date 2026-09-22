@@ -18,6 +18,19 @@ Most tests use synthetic data and run anywhere. The tests that check exact
 dollar results need one specific set of bars, which cannot be redistributed.
 They skip if you do not have that set.
 
+`tests/live/` covers the executor, which keeps its state in Postgres. Those
+tests need a database of their own, because every session drops and rebuilds
+its schema:
+
+```bash
+createdb dqengine_test
+DQENGINE_TEST_DATABASE_URL=postgresql+psycopg2://you@localhost/dqengine_test \
+    python -m pytest tests -q
+```
+
+Without one they skip, and the run prints why. `DQENGINE_REQUIRE_PG=1` turns
+that skip into a failure, which is what CI should use.
+
 ## Rules for changes
 
 1. The tests have to pass: `python -m pytest tests -q`.

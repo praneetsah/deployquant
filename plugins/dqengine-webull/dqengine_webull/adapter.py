@@ -166,8 +166,8 @@ def _norm(o: dict) -> dict:
 
       {"client_order_id": ..., "order_id": ..., "tif": "GTC",
        "order_type": "LMT", "extended_hours_trading": false,
-       "items": [{"symbol": "TQQQ", "qty": "74", "side": "SELL",
-                  "order_type": "LIMIT", "limit_price": "80.52",
+       "items": [{"symbol": "TQQQ", "qty": "100", "side": "SELL",
+                  "order_type": "LIMIT", "limit_price": "55.00",
                   "order_status": "SUBMITTED", "filled_qty": "0"}]}
 
     so symbol/qty/side/price live in items[0] while the ids and tif live on

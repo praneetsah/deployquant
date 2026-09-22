@@ -5,8 +5,8 @@ run several strategies at once on one broker account, each with its own slice
 of the account.
 
 DQengine is the engine underneath it, with the source published. It is the same
-code, not a cut-down copy. On its own it does backtesting today, and live trading
-of one strategy per broker account is coming in version 0.2.
+code, not a cut-down copy. On its own it backtests, and from version 0.2 it
+trades one strategy per broker account live.
 
 It is the fastest event-driven backtester we know of for US stocks on bars. In
 our benchmarks it was about 1.7 times faster than LEAN and NautilusTrader and
@@ -15,9 +15,10 @@ memory of the four. The example in the quick start below is a 5.5 year
 minute-bar backtest, and it takes about 2 seconds and 70 MB of memory on a
 laptop.
 
-It is written in Python and installs with pip. There is no Docker image and
-nothing else to set up. You write a strategy as a Python class and backtest it
-at second, minute or daily resolution.
+It is written in Python and installs with pip. There is no Docker image.
+Backtesting needs nothing else: you write a strategy as a Python class and run
+it at second, minute or daily resolution. Trading it live adds Postgres and
+Redis.
 
 It covers US stocks and ETFs for now. More asset classes and features are
 planned, and they are listed further down.
@@ -52,6 +53,113 @@ Max drawdown  37.90%
 Fills         520  (597 orders)
 Ran in        1.90s
 ```
+
+## Live trading
+
+`dqengine live` runs one algorithm against one broker account. It replays the
+algorithm from its start date on every bar, compares what the replay holds
+against what the broker holds, and sends the difference. This is the same code
+the hosted platform runs on its own accounts.
+
+Paper trading and dry runs take one command. Real money takes two: `dqengine
+adopt` first, then `dqengine live --live`.
+
+```bash
+pip install 'deployquant[live]'
+
+# Postgres and Redis. deploy/docker-compose.yml starts both
+docker compose -f deploy/docker-compose.yml up -d postgres redis
+export DATABASE_URL=postgresql+psycopg2://dqengine:...@localhost:5432/dqengine
+export REDIS_URL=redis://localhost:6379/0
+
+dqengine live my_algo.py --broker alpaca-paper --cash 10000
+```
+
+That creates one broker connection and one deployment, prints what it is about
+to do, and stays in the foreground. Ctrl-C stops every thread and closes the
+feed. Run the same command again after editing the algorithm and it updates the
+same two rows. `--dry-run` computes the real orders and sends none, recording
+each one so `dqengine orders` shows it. `--max-order-usd` and
+`--max-position-usd` refuse anything above a size; both are off unless you pass
+them.
+
+An account that already holds shares needs `dqengine adopt` before it can be
+traded live:
+
+```bash
+dqengine adopt my_algo.py --broker alpaca --start 2026-09-01
+dqengine live my_algo.py --broker alpaca --live
+```
+
+`adopt` reads the account's own trade history from the broker, prints what the
+replay holds next to what the account holds symbol by symbol, and asks for the
+account's label typed back. Nothing is written until that answer. It then
+records the history and raises the connection to the mode where the broker's
+own fills drive the accounting, which is what `--live` requires.
+
+Until that is done the executor refuses any sweep in which the account holds a
+universe symbol nothing accounts for, meaning no order this executor placed and
+no position in the replay. Nothing is sent, and one line names the symbol and
+the quantity. Without the check, an algorithm pointed at an account that
+already holds 74 TQQQ reads "want 0, have 74" on its first sweep and sells
+them.
+
+Three commands read what happened:
+
+```bash
+dqengine status       # exits 0 when everything is fine, 1 when it is not
+dqengine orders       # the last 20 orders, and what happened to each
+dqengine fills        # the last 20 broker executions
+```
+
+`status` exits non-zero on a tick error, an error recorded by the last sweep or
+the last executions poll, a broker connection the venue rejected or one that is
+paused, an order that was sent and never resolved, a feed that has gone silent
+during the session, or a sweep lock another process still holds. A cron job or
+a container healthcheck can use the exit code. All three take `--json`.
+
+Live bars and quotes come from the bundled Alpaca websocket feed
+(`--feed alpaca`). `dqengine feeds` lists the feeds installed here, and a broker
+plugin can ship one that streams from your own account at that broker. When a
+stream goes quiet while the market is open, the worker says so and fetches the
+minutes it missed over REST from the same feed, on the same account and the
+same tape. `--fallback ID` names a different feed for those REST bars, for a
+vendor that streams but cannot serve them. A feed with no REST bars at all
+reports that in the same line, and the algorithm waits for the stream to come
+back.
+
+The engine trades one deployment per broker connection. A second one is refused
+when the rows are created, and refused again by the executor. Running several
+strategies on one account needs a combiner that folds their target positions
+into one set before anything is sent, which is not part of this package. Give
+each strategy its own broker connection, or run them on the hosted platform.
+
+A daily-resolution strategy trades live and fills where its backtest fills:
+that day's close, or the next session's open once the session is within 15.5
+minutes of closing. It needs an adopted connection, because in the minute
+between the order going out and the day's bar landing only the broker's own
+execution rows say whether it went out.
+
+Second-resolution strategies backtest but do not trade live yet. That, and a
+combiner for several strategies on one account, are planned. If you need one of
+them, [open an issue](https://github.com/praneetsah/deployquant/issues).
+
+`deploy/docker-compose.yml` also runs the engine itself, next to Postgres and
+Redis, restarting it unless you stop it:
+
+```bash
+cp deploy/.env.example deploy/.env      # DATABASE_URL, REDIS_URL, DQENGINE_SECRET
+mkdir -p deploy/data && cp my_algo.py deploy/data/
+ALGORITHM=my_algo.py BROKER=alpaca-paper \
+    docker compose -f deploy/docker-compose.yml up -d
+```
+
+Broker credentials are encrypted in the database under a key derived from
+`DQENGINE_SECRET`. Back that key up. Losing it means reconnecting every broker.
+
+The startup block, every refusal, the adoption screen and the full list of
+environment variables are in
+[docs/live.md](https://github.com/praneetsah/deployquant/blob/main/docs/live.md).
 
 ## Benchmarks
 
@@ -117,7 +225,14 @@ a copy of the previous bar.
 | 22,796-trade crossover, orders | 22,796 | 22,796 | DNF in 10 minutes | 22,796 |
 | 22,796-trade crossover, ending balance | $991,113 | $991,119 | DNF in 10 minutes | $991,978 |
 
-How each number was measured, and the limits of this test, are written up in
+The live path was measured separately. Between a bar arriving and the order
+reaching the broker adapter, one deployment on one connection takes 9 to 12
+milliseconds, median over 360 bars on the same machine, with the bus in
+process. A real Redis on the same machine adds about 2 milliseconds. There is
+no LEAN number for that span: LEAN's live mode needs a brokerage environment we
+did not run, and a LEAN backtest has no bar-to-broker span in it.
+
+How each number was measured, and the limits of these tests, are written up in
 [BENCHMARK.md](https://github.com/praneetsah/deployquant/blob/main/BENCHMARK.md).
 
 ## What DQengine does
@@ -136,15 +251,15 @@ How each number was measured, and the limits of this test, are written up in
   rules on the clock from a live quote instead of waiting for the next candle,
   and builds one-second bars from trades the same way live as in a backtest.
 - Broker adapters for Alpaca (included), Webull and Charles Schwab (plugins).
-
-Live trading from the command line (`dqengine live`) is not in this release.
-The order handling code exists and runs real accounts today, but it still lives
-in a private codebase and is being moved here. That will be version 0.2.
+- Live trading of one strategy per broker account, from `dqengine live`, with
+  paper trading, dry runs and real money. Needs Postgres and Redis.
 
 ## What DQengine does not do yet
 
 - Options, futures, forex and crypto
 - Tick and hourly data
+- Live trading at second resolution, or several strategies on one broker
+  account
 - Dynamic universe selection
 - The framework modules (alpha models, portfolio construction, execution and
   risk models)
@@ -238,6 +353,13 @@ recommendations.
 | `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY` | Alpaca keys for `data fetch` and the Alpaca adapter | none |
 | `DQENGINE_FAST_PATH` | Set to `0` to turn off a speed optimization for quiet bars. Results are the same either way | `1` |
 | `DQENGINE_WARM_IDLE_S`, `DQENGINE_SERVE_IDLE_S` | Sandbox only. How long idle workers stay up | `1800`, `14400` |
+| `DATABASE_URL`, `REDIS_URL` | Live trading only. Postgres holds every row the executor owns; the tick, the order path and the feed meet on Redis | none |
+| `DQENGINE_SECRET` | Live trading only. The key broker credentials are encrypted under | written to `~/.dqengine_secret` on a fresh install |
+| `APCA_API_DATA_FEED` | Which Alpaca tape the live feed streams. `sip` needs Alpaca's paid subscription | `iex` |
+
+`deploy/.env.example` lists the live ones with a line each, and
+[docs/live.md](https://github.com/praneetsah/deployquant/blob/main/docs/live.md)
+has the rest.
 
 ## Market data
 
@@ -247,10 +369,10 @@ history, and `data fetch` uses that.
 Second-resolution backtests work if you have second bars in the store.
 `data fetch` only downloads minute bars for now. Second bars are coming.
 
-For live trading in 0.2: Alpaca's free real-time feed is IEX only, which is
-roughly 2 to 3 percent of volume. That is fine for liquid ETFs and large caps.
-A thinly traded symbol can go minutes without a print. Full-market real-time
-data is a paid Alpaca plan.
+For live trading, Alpaca's free real-time feed is IEX only, which is roughly 2
+to 3 percent of volume. That is fine for liquid ETFs and large caps. A thinly
+traded symbol can go minutes without a print. Full-market real-time data is a
+paid Alpaca plan, turned on with `APCA_API_DATA_FEED=sip`.
 
 You can also use your own data. A feed is a class with one method,
 `fetch_days(symbol, start, end)`. See `dqengine/feed.py`.
@@ -324,7 +446,7 @@ then past it. Open an issue for anything you want sooner. Feature by feature:
 | Fee, slippage and margin models | Constant fee and slippage, leverage cap. Per-brokerage models are coming | Many, per brokerage |
 | Fundamentals and custom data | Coming | Yes |
 | Research and strategy development | On [DeployQuant](https://deployquant.com): an AI builder that writes the strategy from a plain English description, and a visual block builder that converts to and from Python. Notebooks and a parameter optimizer are coming | Jupyter research notebooks and a parameter optimizer |
-| Live trading | Engine yes, `dqengine live` command in 0.2 | Yes |
+| Live trading | Yes, one strategy per broker account, at minute and daily resolution. Second resolution and several strategies on one account are coming | Yes |
 | Brokers | Alpaca, Webull, Charles Schwab. More are coming, and you can add your own | Many |
 | Hosted platform | [DeployQuant](https://deployquant.com): hosted backtests and live trading, with the AI and block builders above | A paid cloud service for backtests and live trading |
 
@@ -342,7 +464,8 @@ by them.
 | `dqengine.codegen` | Turns a JSON block strategy into a Python algorithm |
 | `dqengine.feed`, `dqengine.store` | Bar downloads and the on-disk bar store |
 | `dqengine.adapters`, `dqengine.brokers` | Broker adapter interface and plugin loading |
-| `dqengine.live` | Order book mirror, broker capabilities, determinism check, second-bar builder |
+| `dqengine.live` | Live trading: the tick loop, the order executor, the broker order book mirror, the order journal, adoption, `dqengine status` |
+| `dqengine.feeds` | Real-time bar and quote feeds, and the plugin loader for them |
 | `dqengine.sandbox` | Runs untrusted algorithm code in a locked-down container |
 
 [DeployQuant](https://deployquant.com) installs this package as it is and adds

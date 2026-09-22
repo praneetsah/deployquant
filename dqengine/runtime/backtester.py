@@ -868,7 +868,7 @@ class PyBacktester:
             "last_prices": {s: round(px.get(s, 0.0), 2) for s in syms
                             if px.get(s, 0.0) > 0},
             # order_id is the live layer's IDENTITY for a resting order, not
-            # decoration: live_python derives the intent id (and therefore the
+            # decoration: the live driver derives the intent id (and therefore the
             # broker cid prefix) from it. It has to be the ticket's own
             # monotonic id and not this list's position, because a fill
             # removes a ticket and every later order would otherwise renumber
