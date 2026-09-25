@@ -260,3 +260,28 @@ def test_a_history_client_that_raises_is_loud_and_not_clean(monkeypatch, capsys)
     src = bar_source.SqlBarSource(history=boom)
     assert src.export_history(["TQQQ"], date(2026, 9, 1), date(2026, 9, 4)) is False
     assert "history backfill failed" in capsys.readouterr().out
+
+
+def test_two_writers_of_one_minute_zip_do_not_take_each_others_temp_file(tmp_path):
+    """Two deployments sharing a symbol export the same minute zip from two
+    workers; with one shared '<zip>.tmp' the second rename found no file
+    (seen on the hosted platform, four times a session)."""
+    import threading
+    from datetime import date
+    from dqengine.live import bar_source
+    dst = str(tmp_path / "20260924_trade.zip")
+    rows = [[34200000, 100.0, 101.0, 99.0, 100.5, 1000]]
+    errors, gate = [], threading.Barrier(4)
+
+    def write():
+        try:
+            gate.wait(timeout=5)
+            for _ in range(40):
+                bar_source._write_zip_from_rows(dst, date(2026, 9, 24), rows)
+                bar_source._write_sidecar(dst, {"n": threading.get_ident()})
+        except Exception as e:                              # noqa: BLE001
+            errors.append(repr(e))
+    ts = [threading.Thread(target=write) for _ in range(4)]
+    [t.start() for t in ts]; [t.join() for t in ts]
+    assert errors == []
+    assert not [f for f in tmp_path.iterdir() if f.name.endswith(".tmp")]

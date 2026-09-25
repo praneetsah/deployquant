@@ -66,7 +66,7 @@ def scaled_rows(rows: list) -> list:
 
 def _write_zip_from_rows(path: str, day: date, rows: list) -> None:
     lines = [f"{ms},{o},{h},{l},{c},{v:g}" for ms, o, h, l, c, v in scaled_rows(rows)]
-    tmp = path + ".tmp"
+    tmp = _own_tmp(path)
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{day.strftime('%Y%m%d')}_trade.csv", "\n".join(lines))
     os.replace(tmp, path)
@@ -294,7 +294,7 @@ def _read_sidecar(path: str):
 
 
 def _write_sidecar(path: str, fp) -> None:
-    tmp = _sidecar(path) + ".tmp"
+    tmp = _own_tmp(_sidecar(path))
     with open(tmp, "w") as f:
         json.dump(fp, f)
     os.replace(tmp, _sidecar(path))

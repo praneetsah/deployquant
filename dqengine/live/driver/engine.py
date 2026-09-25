@@ -180,6 +180,12 @@ def _usable_last(last) -> bool:
             and math.isfinite(last) and last > 0)
 
 
+# a quote older than this at a primed fire is dropped in favour of the
+# engine's last stepped bar (see _quote_prices). Five minutes: longer than
+# any bar span the platform runs, shorter than a thin ETF's typical gap.
+QUOTE_MAX_AGE_MS = 5 * 60_000
+
+
 def _quote_prices(dep) -> dict:
     """The streamer's realtime snapshot ({SYM: {"last", "at_ms"}}, Redis
     key quotes:last) filtered to the symbols this deployment can touch,
@@ -200,8 +206,22 @@ def _quote_prices(dep) -> dict:
             return {}
         snap = json.loads(raw)
         syms = set(_tick_symbols(dep))
-        return {s: v for s, v in snap.items()
-                if s in syms and isinstance(v, dict) and _usable_last(v.get("last"))}
+        # A print older than QUOTE_MAX_AGE_MS is not a price for a fire: a
+        # thin ETF that has not traded since the morning would size a 15:59
+        # rebalance off a stale number, while the engine's own last stepped
+        # bar (a minute old at most while the tape prints) is fresher. Leave
+        # such a symbol out; prime() keeps its stepped close and reports it
+        # as unpriced, which the fire line shows.
+        now_ms = int(_now_et().timestamp() * 1000)
+        out = {}
+        for s, v in snap.items():
+            if s not in syms or not isinstance(v, dict) or not _usable_last(v.get("last")):
+                continue
+            at = v.get("at_ms")
+            if isinstance(at, (int, float)) and now_ms - int(at) > QUOTE_MAX_AGE_MS:
+                continue
+            out[s] = v
+        return out
     except Exception as e:                          # noqa: BLE001
         now = time.time()
         if now - _QUOTE_FAIL_LOGGED.get(dep.id, 0) > 300:
