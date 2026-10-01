@@ -53,7 +53,7 @@ from zoneinfo import ZoneInfo
 
 from dqengine.adapters.base import BrokerAuthExpired, BrokerUnavailable
 from dqengine.feeds.base import (FeedState, MinuteBar, QuoteTick, bar_is_sane,
-                                 in_regular_session)
+                                 in_regular_session, say)
 from dqengine.feeds.health import SilencePolicy, check_feed
 
 from . import oauth
@@ -173,7 +173,7 @@ def subs_request(info: dict, request_id: str, service: str, command: str,
         "parameters": {"keys": ",".join(sorted(symbols)), "fields": fields}}]}
 
 
-def chart_bars(content, log=print) -> list:
+def chart_bars(content, log=say) -> list:
     """One CHART_EQUITY frame -> the regular-session `MinuteBar`s in it.
 
     Field 7 is the candle's start in epoch ms. A candle outside the
@@ -297,7 +297,7 @@ class SchwabQuoteFeed:
     def __init__(self, creds: Optional[dict] = None, *, token=None,
                  streamer_info=None, store=None, on_bar=None, on_quote=None,
                  symbols: Iterable[str] = (), quote_symbols: Iterable[str] = (),
-                 connect=None, sleep=time.sleep, clock=time.time, log=print,
+                 connect=None, sleep=time.sleep, clock=time.time, log=say,
                  second_symbols=None, on_second_bars=None, close_ms=None):
         self.creds = creds if creds is not None else {}
         self.store = store

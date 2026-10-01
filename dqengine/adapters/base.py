@@ -179,6 +179,13 @@ class Caps:
     # in `order_types`; it explains an absence, it never creates support.
     entitlement_by_type: dict = field(default_factory=dict)
     extended_hours: bool = False         # pre/post-market session routing
+    # Whether executions() reports the fill of an order PLACED on an earlier
+    # day. False on a venue whose only fill feed is "today's orders": a GTC
+    # order resting since Monday that fills on Wednesday never reaches the
+    # ledger, and under `enforce` the day it filled settles as a confirmed
+    # no-fill. The deploy endpoint reads this to keep orders that rest
+    # overnight off broker-driven accounting on such a venue.
+    fills_of_earlier_orders: bool = True
 
     def tifs_for(self, order_type: str) -> frozenset:
         """The time-in-force values this venue accepts FOR THIS TYPE."""

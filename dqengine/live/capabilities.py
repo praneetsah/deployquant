@@ -161,6 +161,22 @@ def unsupported_for_deploy(caps, order_types, kind: str = "blocks",
     return out
 
 
+# Sent and filled inside the session they were placed in: a market order goes
+# out and fills at once, an at-close order (native or emulated a minute before
+# the close) fills at the close, and an at-open ticket is sent as a market
+# order at 09:31 the same day it fills. Everything else can rest at the broker
+# into a later session.
+SAME_SESSION_TYPES = frozenset({base.MARKET, base.MARKET_ON_CLOSE})
+
+
+def overnight_order_types(order_types) -> set:
+    """The order types in `order_types` that can wait at the broker past the
+    session they were placed in. Read with `Caps.fills_of_earlier_orders`:
+    on a venue that cannot report those fills, a strategy that places one of
+    these must not run on broker-driven accounting."""
+    return set(order_types) - SAME_SESSION_TYPES
+
+
 def journal_note(caps, order_type: str, symbol: str) -> str | None:
     """The line to record when a venue is not taking an order as written.
     None when it is native and there is nothing to say."""

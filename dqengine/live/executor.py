@@ -579,6 +579,29 @@ def set_combiner(fn) -> None:
     _COMBINER = fn
 
 
+_ERROR_OBSERVER = None
+
+
+def set_error_observer(fn) -> None:
+    """Install fn(conn_id, broker, errors, fast), called after every sweep
+    that ended with errors in its report: a rejected order, an expired login,
+    a gateway that is not ready, an auditor drift. The sweep has already
+    committed; the observer is told, it decides nothing. Who to tell and how
+    often is the operator's business, so the engine ships none."""
+    global _ERROR_OBSERVER
+    _ERROR_OBSERVER = fn
+
+
+def _report_errors(conn_id, broker, errors, fast) -> None:
+    if not errors or _ERROR_OBSERVER is None:
+        return
+    try:
+        _ERROR_OBSERVER(conn_id, broker, list(errors), fast)
+    except Exception as e:
+        # an alert that fails must never fail the sweep that raised it
+        print(f"[exec] error observer failed {conn_id}: {e!r}", flush=True)
+
+
 def desired_from_payload(dep_id, pos, universe) -> DesiredState:
     """One deployment's position payload -> what it wants at the broker.
 
@@ -2819,6 +2842,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             return "skipped"
         if conn.status in ("reconnect_needed", "error", "pending"):
             return "skipped"
+        broker_id = conn.broker
         try:
             adapter = registry.get_adapter(conn.broker)
         except (KeyError, LookupError) as exc:
@@ -3250,6 +3274,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
         frames.emit(frame)
     except Exception as e:
         print(f"[frames] emit failed {conn_id}: {e!r}", flush=True)
+    _report_errors(conn_id, broker_id, report["errors"], fast)
     if fast:
         return "submitted" if pass_ok else "error"
     return "audited"

@@ -72,6 +72,10 @@ class Bus:
     def set_ex(self, key: str, value: str, ex_s: int) -> None:
         self._r.set(key, value, ex=ex_s)
 
+    def set_nx(self, key: str, value: str, ex_s: int) -> bool:
+        """Set only if absent. True when this call set it."""
+        return bool(self._r.set(key, value, ex=ex_s, nx=True))
+
     def get(self, key: str) -> Optional[str]:
         return self._r.get(key)
 

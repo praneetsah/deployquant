@@ -296,7 +296,11 @@ class WebullAdapter(BrokerAdapter):
                     base.MARKET_ON_CLOSE: "institutional-only at Webull",
                     base.LIMIT_ON_CLOSE: "institutional-only at Webull",
                 },
-                extended_hours=True)
+                extended_hours=True,
+                # executions() is list_today_orders: TODAY-ONLY (see it
+                # below), so a GTC order placed on an earlier day that fills
+                # today is never reported.
+                fills_of_earlier_orders=False)
 
     def _api(self, creds):
         _patch_legacy_six_finder()

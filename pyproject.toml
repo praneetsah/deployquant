@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # (`pip install scikit-learn` / `import sklearn`): PyPI refuses `dqengine` as
 # too similar to the existing, unrelated `dq-engine`.
 name = "deployquant"
-version = "0.1.0"
+version = "0.2.0"
 description = "The fastest event-driven backtester we know of for US stocks on bars. Python, LEAN-compatible. The engine behind DeployQuant."
 keywords = ["backtesting", "backtest", "algorithmic trading", "algo trading", "trading engine",
             "quant", "quantitative finance", "trading strategies", "stocks", "ETF", "fast",

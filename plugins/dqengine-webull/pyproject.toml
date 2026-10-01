@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deployquant-webull"
-version = "0.1.0"
+version = "0.2.0"
 description = "Webull broker adapter for DQengine (pip install deployquant)."
 readme = "README.md"
 # matches the engine (Ruling 16): a plugin never demands a newer Python than dqengine itself
 requires-python = ">=3.11"
 license = { text = "PolyForm-Shield-1.0.0" }
-dependencies = ["deployquant>=0.1.0"]
+dependencies = ["deployquant>=0.2.0"]
 
 [project.optional-dependencies]
 # The official SDK pins grpcio==1.51.1 (no py3.12 wheel) and forgets to

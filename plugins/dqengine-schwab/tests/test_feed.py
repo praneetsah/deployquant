@@ -693,3 +693,12 @@ def test_the_token_and_the_streamer_lookup_are_both_injectable():
                            log=lambda m: None)
     feed.poll()
     assert calls == ["token", "T"] and feed.state.connected is True
+
+
+def test_the_feed_and_the_candle_parser_default_to_the_flushing_logger():
+    """`print` block-buffers when stdout is a file or a pipe, so a self-hoster
+    running `dqengine live > live.log` would see the stream's lines minutes
+    late. The engine's own feed defaults to `say`; this one does too."""
+    from dqengine.feeds.base import say
+    for fn in (SchwabQuoteFeed.__init__, mod.chart_bars):
+        assert inspect.signature(fn).parameters["log"].default is say
