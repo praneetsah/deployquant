@@ -256,6 +256,44 @@ class Execution(Base):
                                        name="uq_exec_conn_execid"),)
 
 
+class FillAllocation(Base):
+    """One deployment's share of a fill, where several deployments trade the
+    same symbol in one account.
+
+    `executions` keeps one row per VENUE fill and stays that way. A fill of a
+    netted market order on a shared symbol belongs to no single deployment
+    (its Execution row has deployment_id NULL, source "shared"); the rows
+    here say who got how much of it. `execution_id` NULL is an internal
+    transfer: one deployment sold what another bought, no order went to the
+    venue, and `cross_id` pairs the two sides.
+
+    A deployment's ledger is its own Execution rows plus its rows here
+    (deployment_store.build_ledger). `group_id` reaches the engine as the
+    fill's order id, so one ticket takes every row of its group together.
+
+    Written by the host that folds several deployments onto one account.
+    The open engine runs one deployment per connection and never writes it.
+    """
+    __tablename__ = "fill_allocations"
+    id = Column(String, primary_key=True, default=_uuid)
+    connection_id = Column(String, ForeignKey("broker_connections.id"),
+                           nullable=False, index=True)
+    # NULL once its deployment has been deleted: the row still accounts for
+    # its part of the venue fill, it is just nobody's ledger any more
+    deployment_id = Column(String, ForeignKey("deployments.id"),
+                           nullable=True, index=True)
+    execution_id = Column(String, ForeignKey("executions.id"),
+                          nullable=True, index=True)
+    symbol = Column(String, nullable=False, index=True)
+    signed_qty = Column(Float, nullable=False)     # +buy / -sell
+    price = Column(Float, nullable=False)
+    fees = Column(Float, nullable=False, default=0.0)
+    filled_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    group_id = Column(String, nullable=False, index=True)
+    cross_id = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+
 class ReconcileFrame(Base):
     """One recorded sweep: everything reconcile() was handed and everything
     it produced (frames.py).

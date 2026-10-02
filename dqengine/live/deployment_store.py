@@ -98,6 +98,24 @@ class SqlDeploymentStore:
         with persistence.SessionLocal() as s:
             return s.get(BrokerConnection, conn_id)
 
+def allocation_time_ms(filled_at) -> int:
+    """An allocation row's time as the ledger and the payload both carry it:
+    whole seconds of the ET session day, in ms. One definition, because the
+    allocator matches a payload fill back to its row on exactly this."""
+    et = filled_at.astimezone(ET)
+    return (et.hour * 3600 + et.minute * 60 + et.second) * 1000
+
+
+def allocation_fill(a) -> LedgerFill:
+    """A fill_allocations row as the engine's ledger reads it."""
+    return LedgerFill(
+        day=a.filled_at.astimezone(ET).date(),
+        time_ms=allocation_time_ms(a.filled_at),
+        symbol=a.symbol, qty=int(round(a.signed_qty)), price=float(a.price),
+        fees=float(a.fees or 0.0), rule_tag=None,
+        broker_order_id=a.group_id)
+
+
 def build_ledger(session, dep: Deployment):
     """The deployment's broker-execution ledger, or None when this
     connection is not in `enforce`.
@@ -106,7 +124,8 @@ def build_ledger(session, dep: Deployment):
     until an operator turns it on: in `observe` the ledger is polled and
     displayed (see the executor's write-back) but must never reach
     `Backtester(ledger=)` and touch accounting."""
-    from dqengine.live.persistence import BrokerConnection, Execution
+    from dqengine.live.persistence import (BrokerConnection, Execution,
+                                           FillAllocation)
     if not dep.broker_connection_id:
         return None
     conn = session.get(BrokerConnection, dep.broker_connection_id)
@@ -126,6 +145,15 @@ def build_ledger(session, dep: Deployment):
             # carried so take() can group every execution of one order into
             # one fill (a partial fill arrives as several rows, spec §4)
             broker_order_id=r.broker_order_id))
+    # ...and this deployment's shares of fills on symbols it trades alongside
+    # another deployment in the same account (fill_allocations: its part of a
+    # netted venue fill, or an internal transfer). The group id travels as
+    # the order id, so the ticket that asked takes every row of its group
+    # together -- a venue share and a transfer are one fill to the model.
+    for a in (session.query(FillAllocation)
+              .filter(FillAllocation.deployment_id == dep.id)
+              .order_by(FillAllocation.filled_at).all()):
+        fills.append(allocation_fill(a))
     # unknown_from=today: unknown-ness only ever describes what we cannot
     # SEE YET, so it demotes absence on recent days only. Settled history
     # (yesterday's confirmed fill, its cost basis, the order levels derived
@@ -144,6 +172,30 @@ def _unknown_symbols(session, dep: Deployment) -> set:
     Conflating the two is exactly how an outage becomes a duplicate live
     position: the sleeve would conclude it never traded, the replay still
     wants the position, and the executor buys it again."""
+    return (_shared_with_others(session, dep)
+            | _unresolved_symbols(session, dep))
+
+
+def _shared_with_others(session, dep: Deployment) -> set:
+    """Symbols this deployment trades alongside another deployment in the
+    same account. A fill on one of them reaches this sleeve only after the
+    host's allocator has split it (fill_allocations), which happens a sweep
+    AFTER the venue fill is stored. Until then the ledger holds no row for
+    this deployment, and that absence must read as UNKNOWN, never as "the
+    broker did not fill": on the replay path a confirmed no-fill drops the
+    position from the model and the next sweep sells real shares. Unknown is
+    day-scoped (unknown_from=today), so a settled day still settles."""
+    from dqengine.live import executions
+    try:
+        shared = executions.shared_symbols(session, dep.broker_connection_id)
+    except Exception as e:
+        print(f"[ledger] shared-symbol lookup failed {dep.id}: {e!r}",
+              flush=True)
+        return set()
+    return {s for s, owners in shared.items() if dep.id in owners}
+
+
+def _unresolved_symbols(session, dep: Deployment) -> set:
     from sqlalchemy import and_, false, func, or_
     from dqengine.live.persistence import BrokerOrder, Execution
     pos = dep.position or {}

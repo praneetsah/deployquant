@@ -161,6 +161,47 @@ def _payload(resp):
     return data
 
 
+def _order_fills(o: dict, since) -> tuple:
+    """(rows, skipped) for one Webull order object: one normalized execution
+    per filled item. A CANCELLED/REJECTED order can still carry a real
+    partial fill on one of its items, so "is this a fill" is decided per
+    item off its own filled_qty/filled_price/last_filled_time -- never off
+    the order-level status."""
+    order_id = o.get("order_id")
+    client_order_id = o.get("client_order_id")
+    out, skipped = [], 0
+    for idx, item in enumerate(o.get("items") or []):
+        filled = float(item.get("filled_qty") or 0)
+        px = item.get("filled_price")
+        ts = item.get("last_filled_time")
+        if filled <= 0 or px in (None, "") or not ts:
+            continue              # not a fill -- no row, no skip
+        try:
+            when = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+            if since is not None and when < since:
+                continue
+            commission = float(item.get("commission") or 0)
+            txn_fee = float(item.get("transaction_fee") or 0)
+            out.append(normalize_execution(
+                broker_order_id=order_id,
+                broker_exec_id=f"{order_id}:{idx}",
+                client_order_id=client_order_id,
+                symbol=item.get("symbol"), side=item.get("side"),
+                qty=filled, price=px, filled_at=when,
+                fees=commission + txn_fee,
+                order_level_avg=True))
+        except (ValueError, TypeError) as exc:
+            # A single malformed item must never discard the rest of a real
+            # fill batch -- including its siblings in the same order.
+            skipped += 1
+            logger.warning(
+                "webull executions: skipping malformed item "
+                "order_id=%r index=%d: %s", order_id, idx, exc)
+    return out, skipped
+
+
 def _norm(o: dict) -> dict:
     """Webull nests the leg detail one level down (verified live 2026-08-16):
 
@@ -543,38 +584,9 @@ class WebullAdapter(BrokerAdapter):
         out = []
         skipped = 0
         for o in (rows or []):
-            order_id = o.get("order_id")
-            client_order_id = o.get("client_order_id")
-            for idx, item in enumerate(o.get("items") or []):
-                filled = float(item.get("filled_qty") or 0)
-                px = item.get("filled_price")
-                ts = item.get("last_filled_time")
-                if filled <= 0 or px in (None, "") or not ts:
-                    continue              # not a fill — no row, no skip
-                try:
-                    when = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
-                    if when.tzinfo is None:
-                        when = when.replace(tzinfo=timezone.utc)
-                    if since is not None and when < since:
-                        continue
-                    commission = float(item.get("commission") or 0)
-                    txn_fee = float(item.get("transaction_fee") or 0)
-                    out.append(normalize_execution(
-                        broker_order_id=order_id,
-                        broker_exec_id=f"{order_id}:{idx}",
-                        client_order_id=client_order_id,
-                        symbol=item.get("symbol"), side=item.get("side"),
-                        qty=filled, price=px, filled_at=when,
-                        fees=commission + txn_fee,
-                        order_level_avg=True))
-                except (ValueError, TypeError) as exc:
-                    # A single malformed item must never discard the rest
-                    # of a real fill batch — including its siblings in the
-                    # same order.
-                    skipped += 1
-                    logger.warning(
-                        "webull executions: skipping malformed item "
-                        "order_id=%r index=%d: %s", order_id, idx, exc)
+            got, bad = _order_fills(o, since)
+            out.extend(got)
+            skipped += bad
         if skipped:
             logger.warning(
                 "webull executions: skipped %d malformed item row(s)",
@@ -583,6 +595,27 @@ class WebullAdapter(BrokerAdapter):
         # I6: see AlpacaAdapter.executions -- a row we could not parse is
         # UNKNOWN downstream, never a confirmed no-fill.
         return ExecutionBatch(out, skipped=skipped)
+
+    def order_executions(self, creds, client_order_id):
+        """ONE order's status and fills, looked up by its client order id.
+
+        `query_order_detail` (GET /trade/order/detail) answers for an order
+        placed on ANY day -- verified live 2026-10-01: a GTC take-profit
+        placed six days earlier came back FILLED with its filled quantity,
+        price, time and fee, the fill `executions()` never saw because the
+        order was not placed that day. The item shape is list_today_orders', so
+        the rows (and their broker_exec_id) are the ones executions() would
+        have built, and a fill seen both ways is stored once."""
+        api = self._api(creds)
+        o = _payload(self._call(api.order.query_order_detail,
+                                creds["account_id"], client_order_id))
+        if not isinstance(o, dict):
+            return ("", ExecutionBatch([], skipped=0))
+        items = o.get("items") or []
+        status = str((items[0].get("order_status") if items else "")
+                     or o.get("order_status") or "").upper()
+        rows, skipped = _order_fills(o, None)
+        return (status, ExecutionBatch(rows, skipped=skipped))
 
     def _instrument_id(self, api, symbol: str) -> str:
         """Webull places orders by instrument_id, not symbol — sending a

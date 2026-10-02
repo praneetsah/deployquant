@@ -323,6 +323,25 @@ def _poll_into(report: dict, adapter, creds, conn_id: str) -> None:
         report["executions"]["error"] = str(e)[:300]
 
 
+def _recover_into(report: dict, adapter, creds, conn_id: str,
+                  open_orders) -> None:
+    """executions.recover_earlier_fills, reported. A failed lookup is an
+    error line (the operator hears of it); the order stays a candidate and
+    is asked about again on a later sweep."""
+    from dqengine.live import executions
+    try:
+        got = executions.recover_earlier_fills(adapter, creds, conn_id,
+                                               open_orders)
+    except Exception as e:
+        report["errors"].append(
+            f"could not look up an earlier order's fills: {e}"[:300])
+        return
+    if got and got["new"]:
+        report["actions"].append(
+            f"recovered {got['new']} fill row(s) of earlier order "
+            f"{got['cid']} ({got['status']})")
+
+
 def _rate_limited(report: dict) -> bool:
     texts = [str(t) for t in report.get("errors", [])]
     ee = (report.get("executions") or {}).get("error")
@@ -544,6 +563,9 @@ class DesiredState:
     # `last_prices`' only fill a gap. Folding two deployments needs to know
     # which is which, or dep1's last_prices quietly beats dep2's holding and
     # the limit/stop rails and the notional caps read a stale price.
+    owner: str = ""       # the deployment this state was read from; ""
+    # for a folded state. Only a combiner reads it: to hold one deployment's
+    # target on a symbol it has to know whose target it is.
 
 
 @dataclass(frozen=True)
@@ -577,6 +599,81 @@ def set_combiner(fn) -> None:
     than traded around."""
     global _COMBINER
     _COMBINER = fn
+
+
+_FILL_ALLOCATOR = None
+
+
+def set_fill_allocator(fn) -> None:
+    """Install fn(conn_id, positions, desired) -> {"actions": [...],
+    "errors": [...]}, run at the end of every audit sweep of an `enforce`
+    connection: after the executions poll and after reconcile. It is how a
+    host that folds several deployments onto one account splits a netted
+    fill between them (persistence.FillAllocation).
+
+    `positions` is this sweep's own read of the account ({SYM: qty}, or None
+    when the sweep never reached it) and `desired` the folded target it
+    reconciled against. Together they say whether the executor still has an
+    order to send for a symbol, which is what tells the host that no more
+    fills are coming for it. The open engine trades one deployment per
+    connection and installs none."""
+    global _FILL_ALLOCATOR
+    _FILL_ALLOCATOR = fn
+
+
+def _allocate_into(report: dict, conn_id: str, positions, desired) -> None:
+    if _FILL_ALLOCATOR is None:
+        return
+    try:
+        out = _FILL_ALLOCATOR(conn_id, positions, desired) or {}
+    except Exception as e:
+        # loud, never fatal: the sweep's own rails keep an unallocated fill
+        # from being traded against, and the next pass allocates it
+        report["errors"].append(f"fill allocation failed: {e!r}"[:300])
+        return
+    report["actions"].extend(list(out.get("actions") or [])[:20])
+    report["errors"].extend(list(out.get("errors") or [])[:5])
+
+
+def _allocation_rail_adjust(s, conn_id, managed_ids) -> dict:
+    """What fill_allocations changes about the fold rails, per symbol:
+    {SYM: {"buy": x, "sell": y, "net": z}} to ADD to what the sleeves folded.
+
+    The rails compare the BROKER's fills of our orders with what the sleeves
+    folded today. Two kinds of allocation row break that comparison unless
+    it is told about them:
+
+    * an internal transfer is no broker fill at all, yet a managed sleeve
+      folds its side of it -- so it is taken OUT of the sleeves' side;
+    * a venue share booked to a deployment the executor no longer manages
+      (a stopped one being released) is a broker fill no sleeve will ever
+      fold -- so it is counted as folded.
+
+    A transfer is subtracted the moment it is written, a tick before its
+    sleeve folds it. That momentary under-count can only keep a symbol
+    frozen until the fold, never lift a freeze early."""
+    from dqengine.live.persistence import FillAllocation
+    start_et = datetime.now(ET).replace(hour=0, minute=0, second=0,
+                                        microsecond=0)
+    out: dict = {}
+    for dep_id, sym, qty, exec_id in (
+            s.query(FillAllocation.deployment_id, FillAllocation.symbol,
+                    FillAllocation.signed_qty, FillAllocation.execution_id)
+            .filter(FillAllocation.connection_id == conn_id,
+                    FillAllocation.filled_at >= start_et).all()):
+        managed = dep_id in managed_ids
+        if exec_id is None and managed:
+            sign = -1.0
+        elif exec_id is not None and not managed:
+            sign = 1.0
+        else:
+            continue
+        q = float(qty)
+        a = out.setdefault((sym or "").upper(),
+                           {"buy": 0.0, "sell": 0.0, "net": 0.0})
+        a["buy" if q > 0 else "sell"] += sign * abs(q)
+        a["net"] += sign * q
+    return out
 
 
 _ERROR_OBSERVER = None
@@ -717,7 +814,7 @@ def desired_from_payload(dep_id, pos, universe) -> DesiredState:
     return DesiredState(desired=desired, exit_wants=tuple(exit_wants),
                         entry_wants=tuple(entry_wants),
                         close_wants=tuple(close_wants), last_px=last_px,
-                        held_px=frozenset(held_px))
+                        held_px=frozenset(held_px), owner=str(dep_id or ""))
 
 
 def owner_of(dep, today_iso) -> Owner:
@@ -2897,6 +2994,16 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                            all(o.live_confirmed for o in owners)
                            if owners else False)
         truth_mode = conn.execution_truth or "off"
+        if truth_mode == "enforce":
+            # several deployments on one symbol: transfers between them and
+            # shares released to a stopped one (see _allocation_rail_adjust)
+            for fsym, adj in _allocation_rail_adjust(
+                    s, conn_id, {d.id for d in deps}).items():
+                model_folded[fsym] = model_folded.get(fsym, 0.0) + adj["net"]
+                ms = model_folded_side.setdefault(
+                    fsym, {"buy": 0.0, "sell": 0.0})
+                ms["buy"] += adj["buy"]
+                ms["sell"] += adj["sell"]
         # buying-power proof for the blind launcher: a conservative read of
         # the cached balance (a margin account's real intraday BP is higher;
         # under-claiming only costs one ack-gap, never a reject)
@@ -3189,6 +3296,18 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
         if truth_mode in ("observe", "enforce") and poll_deferred \
                 and not fast:
             _poll_into(report, adapter, creds, conn_id)
+        if truth_mode in ("observe", "enforce") and not fast:
+            # a venue that reports only today's orders: ask about an
+            # earlier-day order that has left the open list (once a minute)
+            _recover_into(report, adapter, creds, conn_id,
+                          getattr(wrapped, "fetched_open_orders", None))
+        if truth_mode == "enforce" and not fast:
+            # several deployments on one symbol: split this connection's
+            # netted fills between them (the host's allocator), told what
+            # this sweep saw at the venue and what it was reconciling to
+            _allocate_into(report, conn_id,
+                           getattr(wrapped, "fetched_positions", None),
+                           desired)
         # journal recovery (spec: 2026-08-31-order-journal.md): resolve
         # aged `sending` rows against this sweep's own venue evidence --
         # the audit's open-orders fetch and the executions poll verdict.

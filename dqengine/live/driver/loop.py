@@ -35,6 +35,8 @@ from dqengine.live.driver import engine, ports
 
 ET = ZoneInfo("America/New_York")
 HB_EX_S = 120          # heartbeat TTL; supervisor treats missing as stale
+TICKING_EX_S = 20      # the mid-tick marker's TTL: longer than any tick,
+#                        short enough that a dead worker stops holding a sweep
 HB_BEAT_S = 15         # the heartbeat THREAD's cadence (independent of ticks)
 # A tick that has run longer than this is wedged (a hung engine build, a
 # stuck broker call): the heartbeat thread stops the process so the
@@ -402,10 +404,28 @@ class WorkerLoop:
             # worker-owned rows, which is why _feed_bars exists.
             self._tick_started = time.time()
             t_tick0 = time.monotonic()
+            if self._conn_id:
+                # Says "this deployment is mid-tick" to whoever sweeps its
+                # broker connection. A host that nets several deployments'
+                # orders on one account waits for it before it sweeps, so two
+                # strategies deciding on the same bar reach the broker as one
+                # net order. It expires on its own if this process dies, and
+                # a bus that cannot take it costs netting, never the tick.
+                try:
+                    self.bus.set_ex(f"worker:ticking:{self.dep_id}", "1",
+                                    TICKING_EX_S)
+                except Exception as e:
+                    print(f"[worker] ticking marker not set "
+                          f"dep={self.dep_id}: {e!r}", flush=True)
             try:
                 self.tick(self.dep_id, refresh_bars=False)
             finally:
                 self._tick_started = None
+                if self._conn_id:
+                    try:
+                        self.bus.delete(f"worker:ticking:{self.dep_id}")
+                    except Exception:
+                        pass       # it expires; never fail a tick over it
             tick_ms = round((time.monotonic() - t_tick0) * 1000)
             ticked = True
             # a bar event that lands at/after the fire time ticks the fire

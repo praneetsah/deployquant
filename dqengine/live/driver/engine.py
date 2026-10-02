@@ -664,7 +664,8 @@ class DailyEdgeCollision(RuntimeError):
 
 
 def daily_preview(res: dict, holdings: list, open_orders: list, now,
-                  broker: bool = False, native_moc: bool = False) -> tuple:
+                  broker: bool = False, native_moc: bool = False,
+                  detail: dict | None = None) -> tuple:
     """(holdings, close_orders, journal lines) for a daily deployment.
 
     A pure function of the replay result and the clock. It holds no state
@@ -723,6 +724,12 @@ def daily_preview(res: dict, holdings: list, open_orders: list, now,
     add: dict = {}
     close_orders: list = []
     notes: list = []
+    # `detail`, when given, receives {"ticket_add": {SYM: qty}}: the part of
+    # `add` that previews a RESTING TICKET (at-close, at-open) ahead of the
+    # model. It is the quantity this deployment is waiting on the broker
+    # for, which a host splitting one account between several deployments
+    # needs to know; the held-out fills below are not part of it.
+    ticket_add: dict = {}
 
     if run_day == today and close_ms is not None and not bar_applied:
         # A native venue takes the ticket the moment it rests; the emulation
@@ -760,6 +767,7 @@ def daily_preview(res: dict, holdings: list, open_orders: list, now,
                 if net == 0:
                     continue
                 add[s] = add.get(s, 0) + net
+                ticket_add[s] = ticket_add.get(s, 0) + net
                 if publish:
                     close_orders.append(
                         {"type": "market_on_close", "symbol": s, "qty": net,
@@ -785,9 +793,16 @@ def daily_preview(res: dict, holdings: list, open_orders: list, now,
                     # the broker for it now would be a day early
                     continue
                 add[s] = add.get(s, 0) + q
+                ticket_add[s] = ticket_add.get(s, 0) + q
                 notes.append(f"{s} {q:+d} at this session's open — sent to "
                              f"the broker now")
 
+    held_out: dict = {}
+    if detail is not None:
+        detail["ticket_add"] = {k: v for k, v in ticket_add.items() if v}
+        # filled below, in place: {SYM: qty} of fills the model booked that
+        # this function holds OUT of the published want
+        detail["held_out"] = held_out
     released = close_ms is not None and now_ms >= OPEN_PREVIEW_MS
     for f in reversed(res.get("fills") or []):
         fday = date.fromisoformat(f["day"])
@@ -802,6 +817,7 @@ def daily_preview(res: dict, holdings: list, open_orders: list, now,
             continue
         s = (f.get("sym") or "").upper()
         add[s] = add.get(s, 0) - int(f["qty"])
+        held_out[s] = held_out.get(s, 0) + int(f["qty"])
         notes.append(
             f"{s} {int(f['qty']):+d} filled at the {fday} close in the model "
             f"and the broker has not confirmed it — held out of the target "
@@ -875,6 +891,7 @@ def _payload_from_result(dep, events: list, res: dict) -> dict:
     exits, entries, deferred = project_orders(
         pos.get("open_orders") or [], holdings, daily=daily)
     close_orders: list = []
+    preview_detail: dict = {}
     if daily:
         # The engine's next scheduled fire, for the worker's precision wake.
         # A daily deployment has no warm engine to report it, so the replay
@@ -890,7 +907,8 @@ def _payload_from_result(dep, events: list, res: dict) -> dict:
         conn_id = getattr(dep, "broker_connection_id", None)
         holdings, close_orders, previewed = daily_preview(
             res, holdings, pos.get("open_orders") or [], _now_et(),
-            broker=bool(conn_id), native_moc=venue_takes_moc(conn_id))
+            broker=bool(conn_id), native_moc=venue_takes_moc(conn_id),
+            detail=preview_detail)
         deferred += previewed
         primary = next((h for h in holdings if h["symbol"] == sym), None)
         qty = int(primary["qty"]) if primary else 0
@@ -959,6 +977,13 @@ def _payload_from_result(dep, events: list, res: dict) -> dict:
             # runtime has a resting on-close ticket and a moment to place it
             # in. Empty everywhere else, minute and second included.
             "close_orders": close_orders,
+            # {SYM: qty} this tick's `holdings` carry AHEAD of the model: a
+            # daily deployment's at-close / at-open tickets the broker is
+            # being asked for now. Empty for every other resolution.
+            "preview_add": preview_detail.get("ticket_add") or {},
+            # {SYM: qty} the model has booked and `holdings` leave out (a
+            # close fill the broker has not confirmed, held until the open)
+            "held_out": preview_detail.get("held_out") or {},
             # per-tick signal; the warm path overwrites it with the engine's primed dict when a wall-clock fire ran this tick (spec 2026-09-18 §5.1)
             "primed": None,
             "history_fp": fp,

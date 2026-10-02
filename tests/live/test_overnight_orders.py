@@ -40,3 +40,18 @@ def test_venues_report_earlier_orders_unless_they_say_otherwise():
     assert Caps().fills_of_earlier_orders is True
     assert Caps(fills_of_earlier_orders=False).fills_of_earlier_orders \
         is False
+
+
+def test_a_venue_with_a_per_order_lookup_reports_earlier_fills():
+    from dqengine.adapters.base import BrokerAdapter
+
+    class Today(BrokerAdapter):
+        caps = Caps(fills_of_earlier_orders=False)
+
+    class TodayPlusLookup(Today):
+        def order_executions(self, creds, cid):
+            return ("FILLED", [])
+
+    assert capabilities.reports_earlier_fills(BrokerAdapter()) is True
+    assert capabilities.reports_earlier_fills(Today()) is False
+    assert capabilities.reports_earlier_fills(TodayPlusLookup()) is True

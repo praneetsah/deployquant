@@ -1,0 +1,204 @@
+"""Fills of orders placed on an earlier day (executions.recover_earlier_fills).
+
+A venue whose executions() lists only today's orders never reports the fill
+of a GTC take-profit placed days earlier. Under `enforce` the day it filled
+then settles as a confirmed no-fill and the next sweep buys the shares back
+(2026-09-21). The executor asks the venue about such an order once it has
+left the open-order list, and stores what it is told.
+"""
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from dqengine.adapters.base import Caps, normalize_execution
+from dqengine.live import executions, executor, persistence
+
+NOW = datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc)   # 14:00 ET
+FILLED_AT = datetime(2026, 9, 30, 13, 30, 1, tzinfo=timezone.utc)
+
+
+class Venue:
+    caps = Caps(fills_of_earlier_orders=False)
+
+    def __init__(self, status="FILLED", rows=None):
+        self.status = status
+        self.rows = rows if rows is not None else [normalize_execution(
+            broker_order_id="WB1", broker_exec_id="WB1:0",
+            client_order_id="sl-tp-old", symbol="TQQQ", side="SELL",
+            qty=40, price=61.27, filled_at=FILLED_AT, fees=0.15,
+            order_level_avg=True)]
+        self.asked = []
+
+    def order_executions(self, creds, cid):
+        self.asked.append(cid)
+        return (self.status, self.rows)
+
+
+@pytest.fixture(autouse=True)
+def fresh_throttle():
+    executions._LAST_RECOVER.clear()
+    yield
+    executions._LAST_RECOVER.clear()
+
+
+def _rig(pg, owner_id, conn="cr", dep="dr", placed=NOW - timedelta(days=1),
+         cid="sl-tp-old", status="SUBMITTED"):
+    from rig import seed
+    seed(pg, owner_id, conn_id=conn, dep_id=dep, truth="enforce")
+    with pg() as s:
+        s.add(persistence.BrokerOrder(
+            connection_id=conn, deployment_id=dep, broker_order_id=None,
+            client_order_id=cid, symbol="TQQQ", qty=40, side="sell",
+            order_type="limit", limit_price=60.50, status=status,
+            action="submit", created_at=placed, rule_tag="tp-1"))
+        s.commit()
+
+
+def _execs(pg, conn="cr"):
+    with pg() as s:
+        return (s.query(persistence.Execution)
+                .filter(persistence.Execution.connection_id == conn).all())
+
+
+def _order(pg, cid="sl-tp-old"):
+    with pg() as s:
+        return (s.query(persistence.BrokerOrder)
+                .filter(persistence.BrokerOrder.client_order_id == cid)
+                .one())
+
+
+def test_a_vanished_earlier_order_s_fill_is_stored_against_its_deployment(
+        pg, owner_id):
+    _rig(pg, owner_id)
+    v = Venue()
+    got = executions.recover_earlier_fills(v, {}, "cr", [], now=NOW)
+    assert v.asked == ["sl-tp-old"]
+    assert got == {"cid": "sl-tp-old", "status": "FILLED", "new": 1}
+    (e,) = _execs(pg)
+    assert (e.deployment_id, e.rule_tag) == ("dr", "tp-1")
+    assert (float(e.signed_qty), float(e.price)) == (-40.0, 61.27)
+    assert e.filled_at == FILLED_AT
+    o = _order(pg)
+    assert o.status == "FILLED" and o.broker_order_id == "WB1"
+    # final: never asked again
+    executions._LAST_RECOVER.clear()
+    assert executions.recover_earlier_fills(v, {}, "cr", [], now=NOW) is None
+    assert v.asked == ["sl-tp-old"]
+
+
+def test_an_order_still_open_at_the_venue_is_not_asked_about(pg, owner_id):
+    _rig(pg, owner_id)
+    v = Venue()
+    still = [{"id": "", "client_order_id": "sl-tp-old"}]
+    assert executions.recover_earlier_fills(v, {}, "cr", still,
+                                            now=NOW) is None
+    assert v.asked == []
+
+
+def test_an_order_placed_today_is_left_to_the_today_poll(pg, owner_id):
+    _rig(pg, owner_id, placed=NOW - timedelta(hours=2))
+    v = Venue()
+    assert executions.recover_earlier_fills(v, {}, "cr", [], now=NOW) is None
+    assert v.asked == []
+
+
+def test_an_order_older_than_the_window_is_history(pg, owner_id):
+    _rig(pg, owner_id, placed=NOW - timedelta(days=20))
+    v = Venue()
+    assert executions.recover_earlier_fills(v, {}, "cr", [], now=NOW) is None
+
+
+def test_a_fill_already_on_the_ledger_is_not_counted_twice(pg, owner_id):
+    """A take-profit fill had once been entered by hand under its client
+    order id and a made-up exec id. The venue's row has a different exec id,
+    so the dedupe is by order, not by exec id."""
+    _rig(pg, owner_id)
+    with pg() as s:
+        s.add(persistence.Execution(
+            connection_id="cr", deployment_id="dr", broker_order_id=None,
+            broker_exec_id="manual:20260930:tp-fill",
+            client_order_id="sl-tp-old", symbol="TQQQ", signed_qty=-40,
+            price=61.27, fees=0.15, filled_at=FILLED_AT, rule_tag="tp-1",
+            source="manual", order_level_avg=True))
+        s.commit()
+    got = executions.recover_earlier_fills(Venue(), {}, "cr", [], now=NOW)
+    assert got["new"] == 0
+    assert len(_execs(pg)) == 1
+    assert _order(pg).status == "FILLED"
+
+
+def test_a_cancelled_order_is_settled_with_no_rows(pg, owner_id):
+    _rig(pg, owner_id)
+    got = executions.recover_earlier_fills(Venue("CANCELLED", rows=[]), {},
+                                           "cr", [], now=NOW)
+    assert got == {"cid": "sl-tp-old", "status": "CANCELLED", "new": 0}
+    assert _execs(pg) == [] and _order(pg).status == "CANCELLED"
+
+
+def test_nothing_is_asked_without_an_open_order_fetch_or_on_a_full_venue(
+        pg, owner_id):
+    _rig(pg, owner_id)
+    v = Venue()
+    assert executions.recover_earlier_fills(v, {}, "cr", None,
+                                            now=NOW) is None
+    v.caps = Caps()                       # reports earlier orders itself
+    assert executions.recover_earlier_fills(v, {}, "cr", [], now=NOW) is None
+    assert v.asked == []
+
+
+def test_one_lookup_per_connection_per_minute(pg, owner_id):
+    """Webull rate-limited a probe after three quick lookups."""
+    _rig(pg, owner_id, status="SUBMITTED")
+    v = Venue("SUBMITTED", rows=[])       # not final: stays a candidate
+    executions.recover_earlier_fills(v, {}, "cr", [], now=NOW)
+    executions.recover_earlier_fills(v, {}, "cr", [], now=NOW)
+    assert v.asked == ["sl-tp-old"]
+
+
+def test_a_failed_lookup_is_an_error_line_and_nothing_else():
+    class Down(Venue):
+        def order_executions(self, creds, cid):
+            raise RuntimeError("Webull rate-limited us: to many requests")
+    report = {"actions": [], "errors": []}
+
+    def boom(*a, **k):
+        raise RuntimeError("Webull rate-limited us: to many requests")
+    orig = executions.recover_earlier_fills
+    executions.recover_earlier_fills = boom
+    try:
+        executor._recover_into(report, Down(), {}, "cx", [])
+    finally:
+        executions.recover_earlier_fills = orig
+    assert report["actions"] == []
+    assert "rate-limited" in report["errors"][0]
+
+
+def test_an_audit_sweep_recovers_the_fill(pg, owner_id, monkeypatch):
+    """End to end: the executor's audit pass passes its own open-order fetch
+    in, and the venue's fill lands on the ledger."""
+    from rig import FakeBroker
+    from dqengine.live import book as _book
+    _rig(pg, owner_id, conn="ca", dep="da",
+         placed=datetime.now(timezone.utc) - timedelta(days=2))
+
+    class WB(FakeBroker):
+        caps = Caps(fills_of_earlier_orders=False)
+        asked = []
+
+        def order_executions(self, creds, cid):
+            self.asked.append(cid)
+            return ("FILLED", Venue().rows)
+    fb = WB(positions={"SPY": 5.0})
+    fb.caps = Caps(fills_of_earlier_orders=False)  # FakeBroker sets its own
+    monkeypatch.setattr(_book, "FAST_PATH", False)
+    monkeypatch.setattr("dqengine.adapters.catalog.get_adapter",
+                        lambda name: fb)
+    monkeypatch.setattr(executor, "_poll_executions", lambda *a, **k: (0, 0))
+    executor._GATHER_CACHE.pop("ca", None)
+    executor._SYNC_GATE.pop("ca", None)
+    executor.sync_broker_account("ca", fast=False)
+    with pg() as s:
+        rep = s.get(persistence.Deployment, "da").position.get("execution")
+    assert fb.asked == ["sl-tp-old"], rep
+    (e,) = _execs(pg, "ca")
+    assert e.deployment_id == "da" and float(e.price) == 61.27

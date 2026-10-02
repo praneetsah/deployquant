@@ -431,3 +431,49 @@ def test_a_sell_ticket_is_never_booked_with_a_buy_row(book_with_sleeve):
     book.market("TQQQ", 100, 50.0, tag="entry")
     assert sleeve.qty["TQQQ"] == 200
 
+
+
+# ----- a fill split between deployments (live/persistence.FillAllocation) --
+#
+# Where several deployments trade one symbol in one account, a deployment's
+# share of a netted fill reaches its ledger as untagged rows that carry one
+# GROUP id in the order-id slot: its part of the venue fill, and what another
+# deployment transferred to it.
+
+def _share(qty, px, group, ms):
+    return LedgerFill(day=DAY, time_ms=ms, symbol="TQQQ", qty=qty, price=px,
+                      rule_tag=None, broker_order_id=group)
+
+
+def test_one_ticket_takes_its_venue_share_and_its_transfer_together(
+        book_with_sleeve):
+    book, sleeve = book_with_sleeve
+    book.ledger = _ledger([_share(15, 50.40, "ag:b", 36_000_000),
+                           _share(10, 50.12, "ag:b", 36_004_000)])
+    t = book.market("TQQQ", 25, 50.0, tag="entry")
+    assert t.status == OrderStatus.FILLED and t.quantity_filled == 25
+    assert sleeve.qty.get("TQQQ") == 25
+    assert [(f.qty, f.price, f.time_ms, f.confirmed)
+            for f in sleeve.fills] == [(15, 50.40, 36_000_000, True),
+                                       (10, 50.12, 36_004_000, True)]
+
+
+def test_a_later_ticket_on_the_same_day_takes_the_next_group(
+        book_with_sleeve):
+    book, sleeve = book_with_sleeve
+    book.ledger = _ledger([_share(15, 50.40, "ag:1", 36_000_000),
+                           _share(7, 51.00, "ag:2", 40_000_000)])
+    book.market("TQQQ", 15, 50.0, tag="entry")
+    book.market("TQQQ", 7, 50.0, tag="add")
+    assert [(f.qty, f.price) for f in sleeve.fills] == [(15, 50.40),
+                                                        (7, 51.00)]
+
+
+def test_a_partial_share_fills_the_ticket_with_what_the_broker_gave(
+        book_with_sleeve):
+    """The order ended short and the split was written anyway. The model
+    holds what the account holds, not what the strategy asked for."""
+    book, sleeve = book_with_sleeve
+    book.ledger = _ledger([_share(10, 50.40, "ag:b", 36_000_000)])
+    book.market("TQQQ", 25, 50.0, tag="entry")
+    assert sleeve.qty.get("TQQQ") == 10

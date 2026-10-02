@@ -177,6 +177,17 @@ def overnight_order_types(order_types) -> set:
     return set(order_types) - SAME_SESSION_TYPES
 
 
+def reports_earlier_fills(adapter) -> bool:
+    """Whether the ledger learns of a fill of an order placed on an earlier
+    day: the venue's executions() reports it, or the venue answers a
+    per-order lookup (`order_executions`) that the executor asks once such
+    an order leaves the open list (executions.recover_earlier_fills)."""
+    if getattr(adapter.caps, "fills_of_earlier_orders", True):
+        return True
+    return (type(adapter).order_executions
+            is not base.BrokerAdapter.order_executions)
+
+
 def journal_note(caps, order_type: str, symbol: str) -> str | None:
     """The line to record when a venue is not taking an order as written.
     None when it is native and there is nothing to say."""

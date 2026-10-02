@@ -34,6 +34,22 @@ def _base(creds) -> str:
     return LIVE_BASE if creds.get("paper") is False else PAPER_BASE
 
 
+def _refusal_reason(detail: str) -> str:
+    """The message of a 403 that refuses a REQUEST rather than the account:
+    a JSON body with a `code` and a message that is more than "forbidden".
+    Empty when the body says nothing of the kind."""
+    try:
+        doc = json.loads(detail)
+    except (TypeError, ValueError):
+        return ""
+    if not isinstance(doc, dict) or doc.get("code") is None:
+        return ""
+    msg = str(doc.get("message") or "").strip()
+    if msg.lower().rstrip(".") in ("", "forbidden", "unauthorized"):
+        return ""
+    return msg
+
+
 def _req(creds, method, path, body=None, params=None):
     url = f"{_base(creds)}{path}"
     if params:
@@ -57,6 +73,17 @@ def _req(creds, method, path, body=None, params=None):
             detail = e.read().decode()[:300]
         except Exception:
             pass
+        if e.code == 403 and method in ("POST", "PATCH") \
+                and path.startswith("/v2/orders") and _refusal_reason(detail):
+            # Alpaca answers a REFUSED ORDER with 403 and a body that says
+            # why (insufficient buying power, a wash-trade check), not with
+            # 4xx-for-the-request. Read as bad credentials it marked the
+            # connection reconnect_needed and every later sweep skipped it.
+            # Only for placing or replacing an order: a 403 on a cancel
+            # must not read as a cancel that went through (cancel() treats a
+            # rejection as "already gone"), and a 403 on a read is about
+            # the account.
+            raise BrokerRejected(f"Alpaca 403: {detail}")
         if e.code in (401, 403):
             raise BrokerAuthExpired(
                 "Alpaca rejected these keys — check them and reconnect")

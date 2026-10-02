@@ -249,6 +249,18 @@ class BrokerAdapter:
         filled (see the execution-truth spec §6a)."""
         return []
 
+    def order_executions(self, creds: dict, client_order_id: str):
+        """-> (status, rows) for ONE order looked up by its client order id,
+        on any day it was placed: `status` is the broker's order-level
+        status upper-cased ('FILLED', 'CANCELLED', 'SUBMITTED', ...) and
+        `rows` its fills as `executions()` would build them, ids included.
+
+        None (the default) when the venue has no such lookup. Only a venue
+        whose `Caps.fills_of_earlier_orders` is False is asked: it is how
+        the fill of an order resting since an earlier day reaches the
+        ledger at all."""
+        return None
+
     def submit(self, creds: dict, symbol: str, qty: float, side: str,
                order_type: str = "market", tif: str = "day",
                limit_price: float = None, stop_price: float = None,

@@ -5,7 +5,9 @@ Lives apart from the executor deliberately — that module is already 1500+
 lines of order reconciliation, and the ledger is a separate concern with a
 separate failure mode (missing data is UNKNOWN, never "no fill").
 """
-from datetime import timedelta
+import time
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from dqengine.live import persistence                      # noqa: E402
 from dqengine.live.persistence import (BrokerOrder,        # noqa: E402
@@ -81,6 +83,43 @@ def _deployment_universes(session, conn_id) -> dict:
     return out
 
 
+_EXTRA_HOLDERS = None
+
+
+def set_extra_holders(fn) -> None:
+    """Install fn(session, conn_id) -> {deployment_id: {SYMBOLS}} for
+    deployments that still hold shares the executor no longer manages -- a
+    stopped deployment whose position is being sold. They never receive a
+    fill by direct attribution; their presence only keeps a fill of the
+    executor's own market order from being handed to the one managed
+    deployment that happens to trade the same symbol."""
+    global _EXTRA_HOLDERS
+    _EXTRA_HOLDERS = fn
+
+
+def _extra_holders(session, conn_id) -> dict:
+    if _EXTRA_HOLDERS is None:
+        return {}
+    try:
+        return {d: {str(x).upper() for x in syms}
+                for d, syms in (_EXTRA_HOLDERS(session, conn_id) or {}).items()}
+    except Exception as e:
+        print(f"[executions] extra-holders lookup failed {conn_id}: {e!r}",
+              flush=True)
+        return {}
+
+
+def shared_symbols(session, conn_id) -> dict:
+    """{SYMBOL: [deployment_id, ...]} for symbols that two or more of this
+    connection's managed deployments (plus any extra holders) trade."""
+    by_sym: dict = {}
+    for dep_id, syms in {**_extra_holders(session, conn_id),
+                         **_deployment_universes(session, conn_id)}.items():
+        for sym in syms:
+            by_sym.setdefault(sym, []).append(dep_id)
+    return {s: d for s, d in by_sym.items() if len(d) >= 2}
+
+
 def attribute(session, conn_id: str, rows: list) -> list:
     """Resolve each normalized row to a deployment. Never split, never
     guess past a unique match — an unattributable fill is `manual`, which
@@ -103,6 +142,7 @@ def attribute(session, conn_id: str, rows: list) -> list:
     by_order_id = {o.broker_order_id: o for o in orders if o.broker_order_id}
     by_cid = {o.client_order_id: o for o in orders if o.client_order_id}
     universes = _deployment_universes(session, conn_id)
+    extra = _extra_holders(session, conn_id)
 
     out = []
     for r in rows:
@@ -112,12 +152,24 @@ def attribute(session, conn_id: str, rows: list) -> list:
                  or (by_cid.get(r["client_order_id"])
                      if r["client_order_id"] else None))
         dep_id = rule_tag = None
+        shared = False
         if match is not None:
             dep_id = match.deployment_id
             rule_tag = match.rule_tag
         else:
             holders = [d for d, syms in universes.items() if sym in syms]
-            if len(holders) == 1:
+            also = [d for d, syms in extra.items()
+                    if sym in syms and d not in universes]
+            ours = str(r["client_order_id"] or "").startswith("sl-")
+            if ours and (len(holders) + len(also) >= 2 or also):
+                # A fill of the executor's own NETTED order on a symbol more
+                # than one deployment trades (or one a stopped deployment is
+                # still being released from): it belongs to no single
+                # sleeve. The host's allocator says who gets how much
+                # (fill_allocations); guessing one holder here would hand a
+                # whole fill to a sleeve that asked for part of it.
+                shared = True
+            elif len(holders) == 1:
                 dep_id = holders[0]
         sign = 1.0 if r["side"] == "buy" else -1.0
         out.append(Execution(
@@ -127,7 +179,8 @@ def attribute(session, conn_id: str, rows: list) -> list:
             client_order_id=r["client_order_id"] or None,
             symbol=sym, signed_qty=sign * r["qty"], price=r["price"],
             fees=r["fees"], filled_at=r["filled_at"], rule_tag=rule_tag,
-            source="broker" if dep_id else "manual",
+            source=("broker" if dep_id
+                    else "shared" if shared else "manual"),
             order_level_avg=r["order_level_avg"]))
     return out
 
@@ -231,3 +284,112 @@ def poll(adapter, creds: dict, conn_id: str) -> tuple:
             print(f"[executions] book fill-note failed {conn_id}: {e!r}",
                   flush=True)
     return n, skipped
+
+
+# ------------------------------------------------- fills of earlier orders
+
+# A venue whose executions() lists only TODAY'S orders (Webull) never reports
+# the fill of a GTC order placed on an earlier day. Under `enforce` the day
+# it filled then settles as a confirmed no-fill and the next sweep buys the
+# shares back (2026-09-21). recover_earlier_fills asks the venue about each
+# such order once it leaves the open-order list.
+RECOVER_EVERY_S = 60          # one lookup per connection per minute (429s)
+RECOVER_WINDOW_DAYS = 14      # older orders are history, not candidates
+TERMINAL = frozenset({"FILLED", "CANCELLED", "CANCELED", "REJECTED",
+                      "EXPIRED", "FAILED"})
+_LAST_RECOVER: dict = {}
+_ET = ZoneInfo("America/New_York")
+
+
+def _recover_candidate(session, conn_id, open_orders, now):
+    """The newest order this executor placed on an earlier day that is no
+    longer open at the venue and has no final status yet, or None. Newest
+    first: on the day a take-profit fills it is the one that matters, and
+    it must not wait behind older orders this executor cancelled itself."""
+    open_ids = {str(o.get("id") or "") for o in open_orders} - {""}
+    open_cids = {str(o.get("client_order_id") or "")
+                 for o in open_orders} - {""}
+    today0 = datetime.combine(now.astimezone(_ET).date(),
+                              datetime.min.time(), tzinfo=_ET)
+    rows = (session.query(BrokerOrder)
+            .filter(BrokerOrder.connection_id == conn_id,
+                    BrokerOrder.action == "submit",
+                    BrokerOrder.order_type != "market",
+                    BrokerOrder.deployment_id.isnot(None),
+                    BrokerOrder.client_order_id.isnot(None),
+                    BrokerOrder.created_at < today0,
+                    BrokerOrder.created_at
+                    >= now - timedelta(days=RECOVER_WINDOW_DAYS))
+            .order_by(BrokerOrder.created_at.desc()).all())
+    for r in rows:
+        if str(r.status or "").upper() in TERMINAL:
+            continue
+        if r.client_order_id in open_cids or (r.broker_order_id
+                                              and r.broker_order_id in open_ids):
+            continue
+        return r
+    return None
+
+
+def recover_earlier_fills(adapter, creds: dict, conn_id: str, open_orders,
+                          now=None) -> dict | None:
+    """Look up ONE vanished earlier-day order and store its fills.
+
+    `open_orders` is this sweep's own fetch of the venue's open orders; None
+    (not fetched) means nothing can be said about what vanished, so nothing
+    is asked. Returns None when nothing was asked, else
+    {"cid", "status", "new"}. Raises what the adapter raises -- the caller
+    reports it.
+
+    A fill already on the ledger under the same order (by client order id or
+    broker order id -- including a row entered by hand) is not stored
+    again: the venue's row would carry a different exec id and count the
+    shares twice."""
+    if open_orders is None:
+        return None
+    if getattr(adapter.caps, "fills_of_earlier_orders", True):
+        return None
+    now = now or datetime.now(timezone.utc)
+    if time.monotonic() - _LAST_RECOVER.get(conn_id, -1e9) < RECOVER_EVERY_S:
+        return None
+    with persistence.SessionLocal() as s:
+        cand = _recover_candidate(s, conn_id, open_orders, now)
+        if cand is None:
+            return None
+        cid = cand.client_order_id
+    _LAST_RECOVER[conn_id] = time.monotonic()
+    got = adapter.order_executions(creds, cid)
+    if got is None:
+        return None
+    status, rows = got
+    status = str(status or "").upper()
+    rows = list(rows or [])
+    new_rows: list = []
+    with persistence.SessionLocal() as s:
+        oids = {r["broker_order_id"] for r in rows if r["broker_order_id"]}
+        q = s.query(Execution.id).filter(Execution.connection_id == conn_id)
+        held = q.filter(Execution.client_order_id == cid).first() or (
+            q.filter(Execution.broker_order_id.in_(oids)).first()
+            if oids else None)
+        if not held:
+            store(s, conn_id, rows, out=new_rows)
+        fills = [(e.broker_order_id, e.client_order_id, e.symbol,
+                  float(e.signed_qty)) for e in new_rows]
+        for bo in (s.query(BrokerOrder)
+                   .filter(BrokerOrder.connection_id == conn_id,
+                           BrokerOrder.client_order_id == cid,
+                           BrokerOrder.action == "submit").all()):
+            bo.status = status or bo.status
+            if rows and not bo.broker_order_id:
+                bo.broker_order_id = rows[0]["broker_order_id"]
+        s.commit()
+    if fills:
+        try:
+            from dqengine.live.book import book_for
+            book_for(conn_id).note_fills(fills)
+        except Exception as e:
+            print(f"[executions] book fill-note failed {conn_id}: {e!r}",
+                  flush=True)
+    print(f"[executions] {conn_id}: earlier order {cid} is {status or '?'}; "
+          f"{len(new_rows)} fill row(s) recovered", flush=True)
+    return {"cid": cid, "status": status, "new": len(new_rows)}
