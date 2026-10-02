@@ -342,6 +342,53 @@ def _recover_into(report: dict, adapter, creds, conn_id: str,
             f"{got['cid']} ({got['status']})")
 
 
+def _rate_refused(e) -> bool:
+    """A submit the venue refused for coming too fast. HTTP 429 is answered
+    before the request is processed, so the order was NOT placed: unlike any
+    other outage, this one is affirmative evidence, and the journal can close
+    the row at once instead of waiting ABANDON_S to rule out a live order."""
+    if not isinstance(e, BrokerUnavailable):
+        return False
+    t = str(e).lower()
+    return ("rate-limited" in t or "too many request" in t
+            or "to many request" in t or " 429" in t)
+
+
+# Close-window retry of a submit the venue rate-limited (2026-10-02): the
+# next sweep would come with the next bar, and the 15:59 order has one
+# minute to live. A short ladder of retries, each one sweep.
+RATE_RETRY_DELAYS_S = (1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0)
+_RATE_RETRY: dict = {}          # conn_id -> attempts used in this window
+
+
+def _schedule_rate_retry(conn_id: str) -> Optional[float]:
+    """Arrange one more sweep for `conn_id` shortly, while inside the close
+    window. Returns the delay, or None when the ladder is used up or the
+    window has passed."""
+    if not _in_close_window():
+        _RATE_RETRY.pop(conn_id, None)
+        return None
+    n = _RATE_RETRY.get(conn_id, 0)
+    if n >= len(RATE_RETRY_DELAYS_S):
+        return None
+    _RATE_RETRY[conn_id] = n + 1
+    delay = RATE_RETRY_DELAYS_S[n]
+
+    def go():
+        try:
+            handle_intent(conn_id, sweep=sync_broker_account)
+        except Exception as e:
+            print(f"[exec] rate-limit retry {conn_id} failed: {e!r}",
+                  flush=True)
+
+    t = _threading.Timer(delay, go)
+    t.daemon = True
+    t.start()
+    print(f"[exec] {conn_id}: order refused for rate limit inside the close "
+          f"window -- retrying in {delay}s (attempt {n + 1})", flush=True)
+    return delay
+
+
 def _rate_limited(report: dict) -> bool:
     texts = [str(t) for t in report.get("errors", [])]
     ee = (report.get("executions") or {}).get("error")
@@ -1349,7 +1396,8 @@ _GATHER_CACHE: dict = {}
 
 def _launch_market_batch(batch, report, record, batch_lock, gateway_state,
                          handle_rejected, buying_power,
-                         journal_hooks=None) -> None:
+                         journal_hooks=None,
+                         handle_rate_refused=None) -> None:
     """The blind launcher (2026-08-27, user decision): fire the whole
     market-delta batch in parallel. When the account's buying power PROVES
     the buys clear without the sells' proceeds (the margin-account normal
@@ -1392,6 +1440,17 @@ def _launch_market_batch(batch, report, record, batch_lock, gateway_state,
                 journal_hooks[1](b["entry"], None, str(e)[:300])
             with batch_lock:
                 handle_rejected(b["entry"], e)
+            return
+        except BrokerUnavailable as e:
+            if not _rate_refused(e) or handle_rate_refused is None:
+                raise
+            with batch_lock:
+                timings.append((b["sym"], round((time.monotonic() - t_wire) * 1000), "rate_limited"))
+            if journal_hooks is not None:
+                journal_hooks[1](b["entry"], None,
+                                 f"rate-limited, not placed: {e}"[:300])
+            with batch_lock:
+                handle_rate_refused(b["entry"], e)
             return
         with batch_lock:
             timings.append((b["sym"], round((time.monotonic() - t_wire) * 1000), "ok"))
@@ -1626,6 +1685,17 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
 
     batch_lock = _threading.Lock()   # report/gateway/record under threads
 
+    def handle_rate_refused(entry, e):
+        """The venue refused this submit for coming too fast: not placed.
+        Recorded like a refusal (no gateway backoff -- the venue is up), and
+        flagged so the sweep can arrange a quick retry at the close."""
+        msg = str(e)[:300]
+        report["errors"].append(
+            f"{entry['side'].upper()} {entry['qty']} {entry['symbol']} not "
+            f"placed -- {msg}")
+        report["rate_refused"] = True
+        record({**entry, "action": "refused", "status": "rate_limited"})
+
     def handle_rejected(entry, e):
         # match on the FULL message, not the [:300]-truncated one used
         # for display/storage below -- Webull leads with the code
@@ -1691,6 +1761,13 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
             _journal_after(conn_id, entry, None,
                            rejected_note=str(e)[:300])
             handle_rejected(entry, e)
+            return None
+        except BrokerUnavailable as e:
+            if entry.get("action") != "submit" or not _rate_refused(e):
+                raise
+            _journal_after(conn_id, entry, None,
+                           rejected_note=f"rate-limited, not placed: {e}"[:300])
+            handle_rate_refused(entry, e)
             return None
         _journal_after(conn_id, entry, out)
         if entry.get("action") == "cancel":
@@ -2244,6 +2321,7 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         _launch_market_batch(
             deferred_deltas, report, record, batch_lock, gateway_state,
             handle_rejected, buying_power,
+            handle_rate_refused=handle_rate_refused,
             journal_hooks=(
                 lambda e: _journal_before(conn_id, e),
                 lambda e, out, note: _journal_after(conn_id, e, out,
@@ -3359,6 +3437,13 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                       {"new": 0, "skipped": 0,
                        "error": "sweep aborted before the executions poll"})
 
+    if report.get("rate_refused"):
+        delay = _schedule_rate_retry(conn_id)
+        if delay is not None:
+            report["actions"].append(
+                f"order refused for rate limit -- retrying in {delay}s")
+    elif not _in_close_window():
+        _RATE_RETRY.pop(conn_id, None)
     if _rate_limited(report):
         _SYNC_GATE.setdefault(conn_id, {})["cooldown_until"] = (
             time.time() + RATE_LIMIT_COOLDOWN_S)
