@@ -281,7 +281,8 @@ class OrderBook:
             for lf in real:
                 self.sleeve.apply_fill(lf.day, lf.time_ms, ticket.symbol,
                                        lf.qty, lf.price, ticket.tag,
-                                       fees=lf.fees, model_price=px)
+                                       fees=lf.fees, model_price=px,
+                                       kind=ticket.order_type.value)
                 self.sleeve.orders.append(
                     OrderRecord(lf.day, lf.time_ms, ticket.symbol, lf.qty,
                                 ticket.order_type.value, ticket.tag,
@@ -308,6 +309,7 @@ class OrderBook:
             return False
         self.sleeve.apply_fill(day, ms, ticket.symbol, qty, px, ticket.tag,
                                fees=self._fee(ticket.symbol),
+                               kind=ticket.order_type.value,
                                **({} if self.ledger is None
                                   else {"confirmed": False}))
         self.sleeve.orders.append(OrderRecord(day, ms, ticket.symbol, qty,
@@ -340,7 +342,8 @@ class OrderBook:
         filled, last_px = 0, 0.0
         for lf in real:
             self.sleeve.apply_fill(lf.day, lf.time_ms, ticket.symbol, lf.qty,
-                                   lf.price, ticket.tag, fees=lf.fees)
+                                   lf.price, ticket.tag, fees=lf.fees,
+                                   kind=ticket.order_type.value)
             self.sleeve.orders.append(OrderRecord(
                 lf.day, lf.time_ms, ticket.symbol, lf.qty,
                 ticket.order_type.value, ticket.tag, "filled", lf.price))

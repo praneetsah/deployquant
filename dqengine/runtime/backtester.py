@@ -937,7 +937,12 @@ class PyBacktester:
                        "model_px": (round(f.model_price, 4)
                                     if getattr(f, "model_price", None) is not None
                                     else None),
-                       "confirmed": bool(getattr(f, "confirmed", True))}
+                       "confirmed": bool(getattr(f, "confirmed", True)),
+                       # only on an at-open fill: `ms` is the daily bar's
+                       # 16:00 stamp there, and readers show 09:30
+                       **({"at_open": True}
+                          if getattr(f, "kind", "") == "market_on_open"
+                          else {})}
                       for f in sleeve.fills[s_fills:]],
             # orders are NOT delta-able: a ticket's status mutates in place
             # after creation (filled/cancelled on a later bar), so a merged

@@ -624,3 +624,17 @@ def test_the_userlike_case_holds_as_a_live_replay():
             == [r["time"] for r in fx["checks"] if r["at"] == "rebalance"])
     assert {o["type"] for o in algo.orders_seen} == {"market_on_open"}
     assert algo.fills_seen[:2] == fx["fills"][:2]
+
+
+def test_an_at_open_fill_says_so_and_nothing_else_changes():
+    """A daily bar is stamped at the close, so every daily fill carries
+    16:00 as its time; the trades table shows 09:30 for the ones that took
+    the open, from `at_open`. Only those rows gain the key, so the fills a
+    live run and a backtest compare are otherwise unchanged."""
+    _, bt = backtest(store(), end=D1)
+    rows = bt["fills"]
+    opens = [f for f in rows if f.get("at_open")]
+    assert opens and all(f["ms"] == CLOSE_MS for f in opens)
+    assert ("2026-08-07", CLOSE_MS, 1, 107.0) in [
+        (f["day"], f["ms"], f["qty"], f["px"]) for f in opens]
+    assert all("at_open" not in f for f in rows if f["px"] == 109.0)

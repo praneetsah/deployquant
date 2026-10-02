@@ -32,6 +32,11 @@ class Fill:
     # False when the broker has not confirmed this fill yet (same-minute) —
     # the price is still the model's and the UI must say so.
     confirmed: bool = True
+    # the order type that produced it ("market_on_open", ...). Display only:
+    # a daily bar is stamped at the close, so an at-open fill on daily data
+    # carries 16:00 as its time, and this is how a reader tells it filled
+    # at the open. Never read by accounting.
+    kind: str = ""
 
 
 @dataclass
@@ -182,13 +187,13 @@ class Sleeve:
     def apply_fill(self, day: date, time_ms: int, symbol: str, qty: int,
                    price: float, tag: str, fees: float = 0.0,
                    model_price: Optional[float] = None,
-                   confirmed: bool = True):
+                   confirmed: bool = True, kind: str = ""):
         prev = self.qty.get(symbol, 0)
         new = prev + qty
         self.cash -= qty * price + fees
         self.qty[symbol] = new
         self.fills.append(Fill(day, time_ms, symbol, qty, price, tag,
-                               fees, model_price, confirmed))
+                               fees, model_price, confirmed, kind))
         # avg cost. Long paths are bit-identical to the original (buys from
         # flat/long: unchanged math; a buy from short was 'price' before and
         # still is when it FLIPS long). The short branches only run for
