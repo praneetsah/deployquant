@@ -1690,6 +1690,10 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         Recorded like a refusal (no gateway backoff -- the venue is up), and
         flagged so the sweep can arrange a quick retry at the close."""
         msg = str(e)[:300]
+        print(f"[exec] {conn_id or '-'}: submit {entry['side'].upper()} "
+              f"{entry['qty']} {entry['symbol']} "
+              f"cid={entry.get('client_order_id') or '-'} RATE-LIMITED, "
+              f"not placed: {e}", flush=True)
         report["errors"].append(
             f"{entry['side'].upper()} {entry['qty']} {entry['symbol']} not "
             f"placed -- {msg}")
@@ -1703,6 +1707,14 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         # guarantees that stays true.
         full_msg = str(e)
         msg = full_msg[:300]
+        # the whole refusal, once, in the log: the report keeps 300 chars and
+        # is overwritten by the next sweep; this line is what is left to
+        # investigate with later
+        print(f"[exec] {conn_id or '-'}: {entry.get('action')} "
+              f"{entry.get('side', '').upper()} {entry.get('qty')} "
+              f"{entry.get('symbol')} {entry.get('order_type')} "
+              f"cid={entry.get('client_order_id') or '-'} REFUSED: "
+              f"{full_msg}", flush=True)
         if (entry["action"] in ("submit", "replace")
                 and not gateway_state["tripped"]
                 and _is_market_not_ready(full_msg)):

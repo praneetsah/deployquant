@@ -82,3 +82,35 @@ def test_webull_recovers_earlier_fills_through_its_order_lookup():
     from dqengine import brokers
     from dqengine.live import capabilities
     assert capabilities.reports_earlier_fills(brokers.load_class("webull")())
+
+
+def test_a_refusal_keeps_webulls_error_code_and_status():
+    """A refused order is investigated later from what we kept: Webull's own
+    error code is the precise reason and has to survive into the message."""
+    import pytest
+    from dqengine.adapters.base import BrokerRejected
+    from dqengine_webull.adapter import WebullAdapter, _payload
+
+    class Resp:
+        status_code = 417
+
+        def json(self):
+            return {"error_code": "ORDER_SHORT_NOT_ALLOWED",
+                    "msg": "This stock cannot be shorted"}
+    with pytest.raises(BrokerRejected) as ei:
+        _payload(Resp())
+    assert "ORDER_SHORT_NOT_ALLOWED" in str(ei.value)
+    assert "HTTP 417" in str(ei.value)
+    assert "cannot be shorted" in str(ei.value)
+
+    class ServerException(Exception):
+        http_status = 417
+        error_code = "ORDER_SHORT_NOT_ALLOWED"
+        error_msg = "This stock cannot be shorted"
+
+    def boom():
+        raise ServerException()
+    with pytest.raises(BrokerRejected) as ei:
+        WebullAdapter()._call(boom)
+    assert "ORDER_SHORT_NOT_ALLOWED" in str(ei.value)
+    assert "HTTP 417" in str(ei.value)

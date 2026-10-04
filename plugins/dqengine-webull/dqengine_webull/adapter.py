@@ -151,6 +151,13 @@ def _payload(resp):
     code = getattr(resp, "status_code", 200)
     if code >= 400 or (isinstance(data, dict) and data.get("error_code")):
         msg = (data or {}).get("msg", "") if isinstance(data, dict) else ""
+        # Webull's own error code is the precise reason (what its support
+        # asks for); keep it, and the HTTP status, beside the message
+        ecode = (data or {}).get("error_code") if isinstance(data, dict) \
+            else None
+        msg = " ".join(x for x in (f"[{ecode}]" if ecode else "",
+                                   f"(HTTP {code})" if code >= 400 else "",
+                                   msg) if x)
         if code in (401, 403):
             from dqengine.adapters.base import BrokerAuthExpired
             raise BrokerAuthExpired(f"Webull auth failed: {msg}")
@@ -396,6 +403,11 @@ class WebullAdapter(BrokerAdapter):
             status = getattr(e, "http_status", None)
             code = str(getattr(e, "error_code", "") or "").upper()
             msg = getattr(e, "error_msg", "") or ""
+            # keep Webull's code and the status with its message: the code
+            # is the precise reason, and the message alone often is not
+            detail = " ".join(x for x in (f"[{code}]" if code else "",
+                                          f"(HTTP {status})" if status else "",
+                                          msg) if x)
             try:
                 status = int(status)
             except (TypeError, ValueError):
@@ -403,7 +415,7 @@ class WebullAdapter(BrokerAdapter):
             if status in (401, 403) or code in ("UNAUTHORIZED", "FORBIDDEN"):
                 raise BrokerAuthExpired(
                     "Webull rejected these credentials"
-                    + (f": {msg}" if msg else " (401 unauthorized)"))
+                    + (f": {detail}" if detail else " (401 unauthorized)"))
             if status == 429:
                 raise BrokerUnavailable(f"Webull rate-limited us: {msg or e}")
             if status is not None and 400 <= status < 500:
@@ -411,7 +423,8 @@ class WebullAdapter(BrokerAdapter):
                 # INVALID_SYMBOL for a symbol looked up in the wrong
                 # category) — retrying it verbatim can never succeed, so it
                 # must not masquerade as a transient outage
-                raise BrokerRejected(f"Webull refused the request: {msg or e}")
+                raise BrokerRejected(
+                    f"Webull refused the request: {detail or e}")
             if status is None and hasattr(e, "error_code"):
                 # ClientException — the SDK itself refused to send (bad
                 # parameters), which retrying verbatim will never fix
