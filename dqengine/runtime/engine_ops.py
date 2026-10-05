@@ -19,7 +19,7 @@ Ops (args -> result):
     advance      {now_ms_et, today, bars?}           -> {"stepped"}
     tick         {now_ms_et, today, roll?, bars?, since?, prices?}
                  -> {"stepped", "rolled", "session_open", "pushed",
-                     "snapshot", "primed", "next_fire_ms"}
+                     "snapshot", "primed", "next_fire_ms", "late"}
     end_session  {today}                             -> {}
     snapshot     {since?}                            -> the payload dict
     stale        {reason}                            -> {}
@@ -82,7 +82,14 @@ class EngineOps:
                                  "set it at build, rebuild on new truth")
             today = date.fromisoformat(args["today"])
             now = int(args["now_ms_et"])
+            late0 = (getattr(e, "late_bars", 0),
+                     len(getattr(e, "joined_late", ())))
             stepped = e.advance(now, today, bars=args.get("bars"))
+            # what THIS tick took late: bars absorbed behind the frontier and
+            # symbols that joined the open session (warm.py). The driver
+            # logs it; nothing is decided on it.
+            late = {"bars": getattr(e, "late_bars", 0) - late0[0],
+                    "joined": list(getattr(e, "joined_late", ())[late0[1]:])}
             primed = None
             if args.get("prices") is not None:
                 primed = e.prime(now, today, args["prices"])
@@ -94,6 +101,7 @@ class EngineOps:
                     "session_open": e.session_open,
                     "pushed": e.pushed_state(),
                     "primed": primed,
+                    "late": late,
                     "next_fire_ms": e.next_fire_ms(),
                     "snapshot": e.snapshot(since=args.get("since"))}
         if op == "end_session":

@@ -215,14 +215,16 @@ class A(QCAlgorithm):
         self.schedule.on(self.date_rules.every_day("AAA"),
                          self.time_rules.after_market_open("AAA", 3), self._go)
     def _go(self): self.fired += 1
-    def on_data(self, data): pass
 """
 
 
-def test_a_late_symbol_behind_the_frontier_dies_rather_than_stepping_backwards():
-    """Per-symbol frontiers let a late symbol's earlier bars be stepped after
-    a sibling's later ones: algo.time goes backwards and a scheduled event
-    whose window was already crossed FIRES AGAIN -- a second rebalance."""
+def test_a_late_symbol_behind_the_frontier_is_stepped_without_refiring_events():
+    """Stepping a late symbol's earlier bars after a sibling's later ones
+    moved algo.time backwards and a scheduled event whose window was already
+    crossed FIRED AGAIN -- a second rebalance. That is why a late bar used
+    to kill the engine. For a strategy with no per-bar code it is absorbed
+    instead: the clock does not move, so the event cannot see its window
+    twice (2026-10-05: 14 rebuilds in one session from exactly this)."""
     from conftest_helpers import OPEN_MS, synth_day
     d = date(2026, 8, 24)
     store = _two_symbol_store(d, 6, 6)
@@ -235,11 +237,129 @@ def test_a_late_symbol_behind_the_frontier_dies_rather_than_stepping_backwards()
     store.days["BBB"][d] = synth_day(d, [50, 51])
     eng.advance(OPEN_MS + 5 * 60_000, d)                # AAA stepped to +5m
     assert eng._bt.algo.fired == 1
-    # tick 2: BBB's missing bars land -- ends at +3m,+4m are BEHIND the frontier
+    clock = (eng._bt._prev_t, eng._bt._ms, eng._bt.algo.time)
+    # tick 2: BBB's missing bars land -- ends at +3m,+4m,+5m are BEHIND the
+    # frontier; +6m is in order for both
     store.days["BBB"][d] = synth_day(d, [50, 51, 52, 53, 54, 55])
-    with pytest.raises(RuntimeError, match="behind the frontier"):
-        eng.advance(OPEN_MS + 6 * 60_000, d)
+    assert eng.advance(OPEN_MS + 6 * 60_000, d) is True
+    assert eng.dead is None
+    assert eng.late_bars == 3
     assert eng._bt.algo.fired == 1, "the event must not have fired twice"
+    assert eng._last_end == {"AAA": OPEN_MS + 6 * 60_000,
+                             "BBB": OPEN_MS + 6 * 60_000}
+    assert eng._bt._prev_t == OPEN_MS + 6 * 60_000 > clock[0]
+    assert eng._bt.algo.time > clock[2]
+    assert eng._bt.algo.securities["BBB"].close == 55.0
+
+
+def test_the_cursors_are_back_after_a_tick_that_only_stepped_late_bars():
+    from conftest_helpers import OPEN_MS, synth_day
+    d = date(2026, 8, 24)
+    store = _two_symbol_store(d, 6, 6)
+    eng = WarmPyEngine(TWO, store=store,
+                       overrides={"start": "2026-08-24", "end": "2026-08-24",
+                                  "cash": 1000.0})
+    eng.open_grace_ms = 0
+    eng.warm(through=date(2026, 8, 23))
+    store.days["BBB"][d] = synth_day(d, [50, 51, 52, 53])
+    eng.advance(OPEN_MS + 5 * 60_000, d)                # BBB to +4m, AAA to +5m
+    clock = (eng._bt._prev_t, eng._bt._ms, eng._bt.algo.time)
+    # the same minute's bar for BBB, after AAA's was stepped (the QID case)
+    store.days["BBB"][d] = synth_day(d, [50, 51, 52, 53, 54])
+    assert eng.advance(OPEN_MS + 5 * 60_000, d) is True
+    assert eng.late_bars == 1 and eng.dead is None
+    assert (eng._bt._prev_t, eng._bt._ms, eng._bt.algo.time) == clock
+    assert eng._frontier == OPEN_MS + 5 * 60_000
+    assert eng._bt.algo.fired == 1
+
+
+def test_a_symbol_whose_first_bars_land_after_the_open_joins_the_session():
+    """A thin ETF that has not traded yet when the session opens (the
+    2026-10-05 'symbols joined mid-session' rebuilds, ten of them)."""
+    from conftest_helpers import OPEN_MS, synth_day
+    import numpy as np
+    d = date(2026, 8, 24)
+    store = _two_symbol_store(d, 12, 1)                 # BBB: nothing usable
+    eng = WarmPyEngine(TWO, store=store,
+                       overrides={"start": "2026-08-24", "end": "2026-08-24",
+                                  "cash": 1000.0})
+    eng.open_grace_ms = 0
+    eng.warm(through=date(2026, 8, 23))
+    store.days["BBB"].pop(d)
+    eng.advance(OPEN_MS + 6 * 60_000, d)
+    assert eng._day == d and "BBB" not in eng._bt._day_bars
+    # BBB's first trades of the day: bars starting +4m and +7m
+    late = synth_day(d, [50, 51])
+    late.start_ms = np.array([OPEN_MS + 4 * 60_000, OPEN_MS + 7 * 60_000])
+    store.days["BBB"][d] = late
+    assert eng.advance(OPEN_MS + 8 * 60_000, d) is True
+    assert eng.dead is None
+    assert eng.joined_late == ["BBB"]
+    assert eng.late_bars == 1                           # the +5m end
+    assert eng._last_end["BBB"] == OPEN_MS + 8 * 60_000
+    assert eng._bt.algo.securities["BBB"].close == 51.0
+    assert eng._bt.algo.fired == 1
+    # and wrong data is still fatal for it: a first bar that moves
+    moved = synth_day(d, [50, 51, 52])
+    moved.start_ms = np.array([OPEN_MS + 3 * 60_000, OPEN_MS + 7 * 60_000,
+                               OPEN_MS + 8 * 60_000])
+    store.days["BBB"][d] = moved
+    with pytest.raises(RuntimeError, match="history changed"):
+        eng.advance(OPEN_MS + 9 * 60_000, d)
+
+
+SCHEDULED = """
+from AlgorithmImports import *
+class A(QCAlgorithm):
+    def initialize(self):
+        self.set_start_date(2026, 8, 24); self.set_end_date(2026, 8, 24)
+        self.set_cash(1000)
+        self.add_equity("AAA", Resolution.MINUTE); self.add_equity("BBB", Resolution.MINUTE)
+        self.sma = self.sma("BBB", 3, Resolution.MINUTE)
+        self.fired = []
+        self.schedule.on(self.date_rules.every_day("AAA"),
+                         self.time_rules.after_market_open("AAA", 9), self._go)
+    def _go(self):
+        self.fired.append(str(self.time))
+        if self.sma.is_ready and self.securities["BBB"].close > self.sma.current.value:
+            self.set_holdings("BBB", 0.5)
+        else:
+            self.set_holdings("AAA", 0.5)
+"""
+
+
+def test_a_scheduled_decision_is_the_same_with_bars_that_came_late():
+    """The parity that matters for a strategy that decides on a schedule:
+    by the time it fires, every late bar has been stepped, so its
+    indicators and its orders are what an on-time session gives."""
+    from conftest_helpers import OPEN_MS, synth_day
+    d = date(2026, 8, 24)
+    closes_b = [50, 49, 51, 52, 50, 53, 54, 52, 55, 56, 57, 58]
+
+    def run(delayed: bool):
+        store = _two_symbol_store(d, 12, 12)
+        full = synth_day(d, closes_b)
+        store.days["BBB"][d] = full
+        eng = WarmPyEngine(SCHEDULED, store=store,
+                           overrides={"start": "2026-08-24",
+                                      "end": "2026-08-24", "cash": 1000.0})
+        eng.open_grace_ms = 0
+        eng.warm(through=date(2026, 8, 23))
+        for m in range(2, 13):
+            if delayed:
+                # BBB runs two minutes behind until +8m, then catches up
+                n = m - 2 if m < 8 else m
+                store.days["BBB"][d] = synth_day(d, closes_b[:max(n, 1)])
+            eng.advance(OPEN_MS + m * 60_000, d)
+        assert eng.dead is None
+        snap = eng.snapshot()
+        return (eng, [(f["sym"], f["qty"], f["px"]) for f in snap["fills"]],
+                list(eng._bt.algo.fired), float(eng._bt.algo.sma.current.value))
+
+    on_time, late = run(False), run(True)
+    assert late[0].late_bars > 0 and on_time[0].late_bars == 0
+    assert late[1:] == on_time[1:]
+    assert len(late[2]) == 1 and late[1], "it fired once and it traded"
 
 
 def test_the_session_waits_briefly_for_a_late_symbol_at_the_open():
@@ -256,3 +376,106 @@ def test_the_session_waits_briefly_for_a_late_symbol_at_the_open():
     store.days["BBB"][d] = synth_day(d, [50, 51, 52])
     assert eng.advance(OPEN_MS + 2 * 60_000, d) is True
     assert eng.dead is None
+
+
+# --------------------------------- late bars: where they are still fatal
+# A first version stepped a late bar at its own earlier time (review: it
+# filled a stop placed after the bar closed, and ran on_data twice for one
+# minute); a second absorbed it for every strategy (review: on_data and
+# paired indicators silently lost bars). Absorbing is therefore limited to
+# strategies where a bar does nothing but move a price and an indicator.
+
+RESTING = """
+from AlgorithmImports import *
+class A(QCAlgorithm):
+    def initialize(self):
+        self.set_start_date(2026, 8, 24); self.set_end_date(2026, 8, 24)
+        self.set_cash(10000)
+        self.add_equity("AAA", Resolution.MINUTE); self.add_equity("BBB", Resolution.MINUTE)
+        self.schedule.on(self.date_rules.every_day("AAA"),
+                         self.time_rules.after_market_open("AAA", 5), self._go)
+    def _go(self):
+        self.market_order("BBB", 10)
+        self.stop_market_order("BBB", -10, 48.0)
+"""
+
+
+def test_a_late_bar_for_a_symbol_with_a_resting_order_still_rebuilds():
+    """BBB's bar ending +4m traded down to 44 and arrives late, after the
+    +5m event bought BBB and rested a stop at 48. Whether that bar fills
+    the stop is the replay's question, not a guess for the warm engine."""
+    from conftest_helpers import OPEN_MS, synth_day
+    d = date(2026, 8, 24)
+    store = _two_symbol_store(d, 8, 8)
+    eng = WarmPyEngine(RESTING, store=store,
+                       overrides={"start": "2026-08-24", "end": "2026-08-24",
+                                  "cash": 10000.0})
+    eng.open_grace_ms = 0
+    eng.warm(through=date(2026, 8, 23))
+    store.days["BBB"][d] = synth_day(d, [50, 51, 52])           # to +3m
+    eng.advance(OPEN_MS + 5 * 60_000, d)                        # event fires
+    store.days["BBB"][d] = synth_day(d, [50, 51, 52, 45, 52])   # +4m low = 44
+    with pytest.raises(RuntimeError, match="resting order is open on BBB"):
+        eng.advance(OPEN_MS + 5 * 60_000, d)
+    assert eng.dead and eng.late_bars == 0
+    # AAA has no resting order: its late bars would still be absorbed
+    assert eng._bt.late_bar_refusal("AAA") is None
+
+
+ONDATA = """
+from AlgorithmImports import *
+class A(QCAlgorithm):
+    def initialize(self):
+        self.set_start_date(2026, 8, 24); self.set_end_date(2026, 8, 24)
+        self.set_cash(10000)
+        self.add_equity("AAA", Resolution.MINUTE); self.add_equity("BBB", Resolution.MINUTE)
+        self.calls = 0
+    def on_data(self, data):
+        self.calls += 1
+        if self.time.hour == 9 and self.time.minute == 35:
+            self.market_order("AAA", 1)
+"""
+
+
+def test_a_late_bar_under_an_on_data_strategy_still_rebuilds():
+    from conftest_helpers import OPEN_MS, synth_day
+    d = date(2026, 8, 24)
+    for case in ("behind", "joined"):
+        store = _two_symbol_store(d, 8, 8)
+        eng = WarmPyEngine(ONDATA, store=store,
+                           overrides={"start": "2026-08-24",
+                                      "end": "2026-08-24", "cash": 10000.0})
+        eng.open_grace_ms = 0
+        eng.warm(through=date(2026, 8, 23))
+        if case == "behind":
+            store.days["BBB"][d] = synth_day(d, [50, 51, 52, 53])
+        else:
+            full = store.days["BBB"].pop(d)
+        eng.advance(OPEN_MS + 5 * 60_000, d)
+        calls = eng._bt.algo.calls
+        store.days["BBB"][d] = synth_day(d, [50, 51, 52, 53, 54])
+        match = ("behind the frontier" if case == "behind"
+                 else "joined mid-session")
+        with pytest.raises(RuntimeError, match=match) as e:
+            eng.advance(OPEN_MS + 5 * 60_000, d)
+        assert "on_data handler" in str(e.value)
+        assert eng._bt.algo.calls == calls, "on_data must not run again"
+
+
+def test_a_two_symbol_indicator_on_the_late_symbol_still_rebuilds():
+    from conftest_helpers import OPEN_MS, synth_day
+    d = date(2026, 8, 24)
+    store = _two_symbol_store(d, 8, 8)
+    eng = WarmPyEngine(TWO, store=store,
+                       overrides={"start": "2026-08-24", "end": "2026-08-24",
+                                  "cash": 1000.0})
+    eng.open_grace_ms = 0
+    eng.warm(through=date(2026, 8, 23))
+
+    class Paired:
+        def update_symbol(self, *a, **k): return False
+    from dqengine.runtime.enums import Resolution
+    eng._bt.algo._indicators.setdefault("BBB", []).append(
+        (Resolution.MINUTE, Paired()))
+    assert "two-symbol indicator" in eng._bt.late_bar_refusal("BBB")
+    assert eng._bt.late_bar_refusal("AAA") is None

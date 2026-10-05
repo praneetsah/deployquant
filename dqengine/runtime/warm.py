@@ -20,11 +20,20 @@ a reload -- that is the whole reason B1 moved them onto self._.
 Correctness posture, inherited from ir_engine/live_engine.py and paid for
 one incident at a time there: warm state must never guess.
 
-  * a bar at or before an already-processed end, or a symbol-day whose
-    FIRST bar changed since we stepped it, marks the engine `dead`;
-  * a symbol that joins mid-session is UNRECOVERABLE here, unlike the IR
-    engine: user on_data has already run for slices that did not carry it,
-    and there is no way to replay those handlers with it present. Dead,
+  * a symbol-day whose FIRST bar changed since we stepped it, or that
+    shrank, marks the engine `dead`: the data is wrong, not late;
+  * a bar that is merely LATE -- its end is at or behind the frontier and
+    its own symbol has not stepped that end: a symbol's first bars of the
+    day landing after the session opened, or a minute's bar landing after
+    its siblings' were stepped -- is ABSORBED when nothing in the strategy
+    runs per bar (PyBacktester.late_bar_refusal: no on_data, no
+    consolidators, no paired indicator or resting order on the symbol).
+    The clock does not move; the symbol's price and indicators take the
+    bar. For such a strategy that is all a bar ever does, so the session
+    still lands where the replay lands. (2026-10-05: 24 rebuilds in one
+    session on a 58-symbol schedule-driven universe, every one a thin
+    ETF.) For any other strategy a late bar is still fatal: user code has
+    run for slices that did not carry it and cannot be re-run. Dead,
     rebuild;
   * user code calling quit() marks the engine dead -- a warm engine that
     ignored it would keep trading after the strategy said stop;
@@ -91,6 +100,8 @@ class WarmPyEngine:
         # engine dies on exactly this (live_engine.py processed_ts); so do we.
         self._frontier: int = -1
         self.bars_stepped = 0
+        self.late_bars = 0                # bars absorbed behind the frontier
+        self.joined_late: list = []       # symbols first seen mid-session
 
     # ------------------------------------------------------------ state
 
@@ -316,10 +327,18 @@ class WarmPyEngine:
             self._first_ms = {s: int(b.start_ms[0])
                               for s, b in bt._day_bars.items()}
         else:
-            joined = set(fresh) - set(bt._day_bars)
-            if joined:
-                self.stale(f"symbols joined mid-session: {sorted(joined)}")
+            joined = sorted(set(fresh) - set(bt._day_bars))
+            why = next((w for w in map(bt.late_bar_refusal, joined) if w), None)
+            if why:
+                self.stale(f"symbols joined mid-session: {joined} ({why})")
                 raise RuntimeError(self.dead)
+            for s in joined:
+                # first bars of the day for a symbol the session opened
+                # without: it joins here. Whatever of it closed behind the
+                # frontier is absorbed, below.
+                bt._day_bars[s] = fresh[s]
+                self._first_ms[s] = int(fresh[s].start_ms[0])
+                self.joined_late.append(s)
             for s, b in fresh.items():
                 old = bt._day_bars[s]
                 if int(b.start_ms[0]) != self._first_ms[s]:
@@ -333,6 +352,7 @@ class WarmPyEngine:
 
         # the merged timeline of CLOSED, UNPROCESSED bar-ends
         ends: dict[int, list] = {}
+        late: dict[int, list] = {}
         for s, b in bt._day_bars.items():
             span = bt._spans.get(s)
             if span is None:
@@ -348,14 +368,26 @@ class WarmPyEngine:
                 if t <= done:
                     continue
                 if t <= self._frontier:
-                    # a bar for this symbol that closed BEFORE bars we have
-                    # already stepped for other symbols. Stepping it would
-                    # run the timeline backwards. Never absorbed.
-                    self.stale(f"{s} bar ending {t} arrived behind the "
-                               f"frontier {self._frontier}")
-                    raise RuntimeError(self.dead)
+                    # closed at or before bars already stepped for other
+                    # symbols, and never stepped for this one: late
+                    why = bt.late_bar_refusal(s)
+                    if why:
+                        self.stale(f"{s} bar ending {t} arrived behind the "
+                                   f"frontier {self._frontier} ({why})")
+                        raise RuntimeError(self.dead)
+                    late.setdefault(t, []).append((s, i))
+                    continue
                 ends.setdefault(t, []).append((s, i))
         stepped = False
+        if late:
+            for t in sorted(late):
+                entries = late[t]
+                bt._absorb_late_bars(today, t, entries)
+                for s, _ in entries:
+                    self._last_end[s] = t
+                self.bars_stepped += len(entries)
+                self.late_bars += len(entries)
+                stepped = True
         for t in sorted(ends):
             entries = ends[t]
             bt._step_bar(today, t, entries)

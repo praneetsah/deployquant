@@ -283,8 +283,11 @@ def test_trades_and_quotes_reach_the_board_with_separate_timestamps():
     assert (q["last"], q["bid"], q["ask"]) == (72.5, 72.4, 72.6)
     # the snapshot carries the time of the last TRADE, not of the bid that
     # ticked 19 minutes later
-    assert board.snapshot() == {"TQQQ": {"last": 72.5,
-                                         "at_ms": int(traded.timestamp() * 1000)}}
+    # ... and the quote with its own time, for a reader with no recent trade
+    assert board.snapshot() == {"TQQQ": {
+        "last": 72.5, "at_ms": int(traded.timestamp() * 1000),
+        "bid": 72.4, "ask": 72.6,
+        "quote_at_ms": int(quoted.timestamp() * 1000)}}
 
 
 def test_a_non_positive_last_is_omitted_from_the_snapshot():

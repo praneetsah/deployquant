@@ -185,6 +185,29 @@ def _usable_last(last) -> bool:
 # any bar span the platform runs, shorter than a thin ETF's typical gap.
 QUOTE_MAX_AGE_MS = 5 * 60_000
 
+# A symbol with no trade inside that window is priced off the midpoint of
+# its bid and ask instead, when the quote is this fresh and this tight
+# (owner decision 2026-10-05: 60 s, 1% of the midpoint). 2026-10-05 15:59:
+# six thin ETFs on the 58-symbol switcher had no price at the fire.
+MID_MAX_AGE_MS = 60_000
+MID_MAX_SPREAD = 0.01
+
+
+def _mid_price(v: dict, now_ms: int):
+    """{"last": midpoint, "at_ms": quote time, "src": "mid"} for a snapshot
+    entry whose two-sided quote is fresh and tight, else None."""
+    bid, ask, at = v.get("bid"), v.get("ask"), v.get("quote_at_ms")
+    if not (_usable_last(bid) and _usable_last(ask)) or ask < bid:
+        return None
+    if not isinstance(at, (int, float)) or isinstance(at, bool):
+        return None
+    if now_ms - int(at) > MID_MAX_AGE_MS:
+        return None
+    mid = (bid + ask) / 2.0
+    if (ask - bid) / mid > MID_MAX_SPREAD:
+        return None
+    return {"last": mid, "at_ms": int(at), "src": "mid"}
+
 
 def _quote_prices(dep) -> dict:
     """The streamer's realtime snapshot ({SYM: {"last", "at_ms"}}, Redis
@@ -215,12 +238,19 @@ def _quote_prices(dep) -> dict:
         now_ms = int(_now_et().timestamp() * 1000)
         out = {}
         for s, v in snap.items():
-            if s not in syms or not isinstance(v, dict) or not _usable_last(v.get("last")):
+            if s not in syms or not isinstance(v, dict):
                 continue
             at = v.get("at_ms")
-            if isinstance(at, (int, float)) and now_ms - int(at) > QUOTE_MAX_AGE_MS:
+            if _usable_last(v.get("last")) and not (
+                    isinstance(at, (int, float))
+                    and now_ms - int(at) > QUOTE_MAX_AGE_MS):
+                # a recent trade always wins: nothing changes for a symbol
+                # that is printing
+                out[s] = {"last": v["last"], "at_ms": at}
                 continue
-            out[s] = v
+            mid = _mid_price(v, now_ms)
+            if mid is not None:
+                out[s] = mid
         return out
     except Exception as e:                          # noqa: BLE001
         now = time.time()
@@ -1278,12 +1308,18 @@ def warm_tick_python(dep, events: list, ledger=None, code=None) -> dict:
     # which is right -- no fires remain that day. The worker's precision
     # wake (next_fire_ms below) targets this.
     entry["next_fire_ms"] = tick.get("next_fire_ms")
+    late = tick.get("late") or {}
+    if late.get("bars") or late.get("joined"):
+        print(f"[warm-py] late bars dep={dep.id} stepped={late.get('bars')} "
+              f"joined={late.get('joined')}", flush=True)
     primed = tick.get("primed")
     if primed is not None:
         # the epoch reference is taken AFTER the RPC returned, not from the
         # now_et captured at tick start: the engine call is the tick's
         # long pole and staleness measured from before it under-reports
         primed = {**primed,
+                  "mid": sorted(s for s, v in prices.items()
+                                if v.get("src") == "mid"),
                   "max_stale_ms": _max_stale_ms(prices, int(_now_et().timestamp() * 1000))}
     if rolled:
         entry["last_completed"] = today
@@ -1316,6 +1352,7 @@ def warm_tick_python(dep, events: list, ledger=None, code=None) -> dict:
         print(f"[warm-py] primed fire dep={dep.id} "
               f"events={[f.get('name') for f in primed.get('fired', [])]} "
               f"priced={primed.get('priced')} unpriced={primed.get('unpriced')} "
+              f"mid={primed.get('mid')} "
               f"stale_ms={primed.get('max_stale_ms')}"
               + (f" stalest={stalest[0]}@{stalest[1]}ms" if stalest else "")
               + f" rpc_to_payload_ms={round((time.monotonic() - t_rpc) * 1000)}",

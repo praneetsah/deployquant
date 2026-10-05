@@ -442,7 +442,9 @@ def test_a_quote_reaches_the_board_and_the_callback_with_the_fields_mapped():
     q = board.get("TQQQ")
     assert (q["bid"], q["ask"], q["last"]) == (72.4, 72.6, 72.5)
     assert board.snapshot() == {"TQQQ": {"last": 72.5,
-                                         "at_ms": int(clock.t * 1000)}}
+                                         "at_ms": int(clock.t * 1000),
+                                         "bid": 72.4, "ask": 72.6,
+                                         "quote_at_ms": int(clock.t * 1000)}}
     # the full board keeps every subscribed field, not just the three
     assert feed.quotes["TQQQ"] == {"bid": 72.4, "ask": 72.6, "last": 72.5,
                                    "volume": 1_000_000, "high": 73.0,

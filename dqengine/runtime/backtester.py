@@ -734,6 +734,54 @@ class PyBacktester:
                 book.fill_at_session_edge(_OT.MARKET_ON_OPEN, prices)
         self._prev_t = t
 
+    def late_bar_refusal(self, sym: str) -> str | None:
+        """Why a LATE bar for `sym` cannot be absorbed (see
+        _absorb_late_bars), or None when it can. Absorbing skips everything
+        that runs per bar, so it is allowed only when nothing does:
+
+          * on_data is not overridden -- nothing would have been handed
+            the bar anyway;
+          * no consolidator anywhere -- a handler is user code on a bar;
+          * no paired (two-symbol) indicator on the symbol -- it pairs
+            samples by equal time and would drop this one;
+          * no resting order open on the symbol -- the bar might have
+            filled it.
+        A session that fails any of these is rebuilt by the replay, as
+        every late bar was before 2026-10-05."""
+        algo = self.algo
+        if not fastpath.on_data_is_noop(algo):
+            return "the strategy has an on_data handler"
+        if fastpath.has_consolidators(algo):
+            return "the strategy uses consolidators"
+        if any(hasattr(ind, "update_symbol")
+               for _res, ind in algo._indicators.get(sym, ())):
+            return f"a two-symbol indicator reads {sym}"
+        if self._book.open_tickets(sym):
+            return f"a resting order is open on {sym}"
+        return None
+
+    def _absorb_late_bars(self, day: date, t: int,
+                          entries: list[tuple[str, int]]) -> None:
+        """Live only (WarmPyEngine), and only for a symbol late_bar_refusal
+        clears: bars that ended at `t`, at or behind a bar-end this session
+        has already stepped. The clock does not move and nothing that runs
+        on the clock runs. The security's last bar and price and its minute
+        indicators take the bar -- which, for a strategy with no per-bar
+        code, is everything a bar ever does."""
+        algo = self.algo
+        for s, i in entries:
+            b = self._day_bars[s]
+            o, h, l, c = (float(b.open[i]), float(b.high[i]),
+                          float(b.low[i]), float(b.close[i]))
+            sec = algo.securities[s]
+            sec.open, sec.high, sec.low, sec.close = o, h, l, c
+            sec.price = c
+            sec.volume = float(b.volume[i])
+            self._prices[s] = c
+            bar = TradeBar(sec.symbol, _dt(day, t - self._spans[s]),
+                           _dt(day, t), o, h, l, c, float(b.volume[i]))
+            self._feed_indicators(s, bar, minute=True)
+
     def _run_pre_bar_events(self, day: date, upto_ms: int | None = None) -> None:
         """Daily runs: the events due while the session is open, run before
         the day's bar is applied.

@@ -301,8 +301,10 @@ class QuoteBoard:
     """The last L1 state per symbol, folded from partial ticks.
 
     `snapshot()` is the shape the driver primes scheduled fires from:
-    `{SYM: {"last": px, "at_ms": epoch_ms_of_the_last_trade}}`. A symbol
-    with no usable last is OMITTED rather than published as None or zero —
+    `{SYM: {"last": px, "at_ms": epoch_ms_of_the_last_trade}}`, plus
+    `bid`, `ask` and `quote_at_ms` when the board holds a two-sided quote.
+    A symbol with no usable last and no usable quote is OMITTED rather
+    than published as None or zero —
     `set_holdings` returns None on a price <= 0 (a silently missing order),
     and a zero mark on a held name collapses the portfolio value every
     other symbol is sized against."""
@@ -345,21 +347,41 @@ def usable_snapshot(quotes: dict) -> dict:
     the frame's own time."""
     out = {}
     for sym, q in quotes.items():
-        last = q.get("last")
-        if last is None:
-            continue
-        try:
-            px = float(last)
-        except (TypeError, ValueError):
-            continue
-        if not math.isfinite(px) or px <= 0:
-            continue
-        at_ms = q.get("last_at_ms")
-        if at_ms is None:
-            secs = _epoch(q.get("last_at"))
-            at_ms = None if secs is None else int(secs * 1000)
-        out[sym] = {"last": px, "at_ms": at_ms}
+        entry = {}
+        px = _price(q.get("last"))
+        if px is not None:
+            at_ms = q.get("last_at_ms")
+            if at_ms is None:
+                secs = _epoch(q.get("last_at"))
+                at_ms = None if secs is None else int(secs * 1000)
+            entry = {"last": px, "at_ms": at_ms}
+        # The two-sided quote, for a reader that has no recent trade to
+        # price by (a thin ETF at a scheduled fire). Published only whole:
+        # both sides usable and not crossed. `quote_at_ms` is when the
+        # FRAME arrived -- the feed sends no per-side time -- carried as
+        # epoch ms (`at_ms`) or an ISO stamp (`at`) depending on the board.
+        bid, ask = _price(q.get("bid")), _price(q.get("ask"))
+        if bid is not None and ask is not None and ask >= bid:
+            q_at = q.get("at_ms")
+            if q_at is None:
+                secs = _epoch(q.get("at"))
+                q_at = None if secs is None else int(secs * 1000)
+            if isinstance(q_at, (int, float)) and not isinstance(q_at, bool):
+                entry.update(bid=bid, ask=ask, quote_at_ms=int(q_at))
+        if entry:
+            out[sym] = entry
     return out
+
+
+def _price(value):
+    """A finite positive float, or None."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        px = float(value)
+    except (TypeError, ValueError):
+        return None
+    return px if math.isfinite(px) and px > 0 else None
 
 
 def say(message: str) -> None:
