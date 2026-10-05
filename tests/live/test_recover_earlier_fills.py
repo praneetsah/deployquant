@@ -202,3 +202,107 @@ def test_an_audit_sweep_recovers_the_fill(pg, owner_id, monkeypatch):
     assert fb.asked == ["sl-tp-old"], rep
     (e,) = _execs(pg, "ca")
     assert e.deployment_id == "da" and float(e.price) == 61.27
+
+
+# ------------------------------------------------ the 2026-10-05 double buy
+#
+# A take-profit placed on an earlier day filled (sell 79). One audit sweep
+# read 0 shares at the venue, wrote 0 into the book, froze it on the stale
+# want, and THEN recovered the fill -- which subtracted the shares from the
+# book a second time (-79). A fast pass that had passed the frozen check
+# before the audit took the connection lock ran next and bought
+# 79 - (-79) = 158.
+
+def _tp_filled_rig(pg, owner_id, monkeypatch, conn, dep, filled_at=None):
+    """The venue after the take-profit filled: 0 TQQQ, no open order. The
+    sleeve has not heard: it still holds 40. The book is one audit behind."""
+    from rig import FakeBroker, book_for
+    from dqengine.live import book as _book
+    _rig(pg, owner_id, conn=conn, dep=dep,
+         placed=datetime.now(timezone.utc) - timedelta(days=2))
+    with pg() as s:
+        d = s.get(persistence.Deployment, dep)
+        d.ir = {"universe": {"static": ["TQQQ"]}}
+        d.position = {"holdings": [{"symbol": "TQQQ", "qty": 40,
+                                    "last_price": 61.0}]}
+        s.commit()
+
+    rows = [normalize_execution(
+        broker_order_id="WB1", broker_exec_id="WB1:0",
+        client_order_id="sl-tp-old", symbol="TQQQ", side="SELL", qty=40,
+        price=61.27, filled_at=filled_at or datetime.now(timezone.utc),
+        fees=0.15, order_level_avg=True)]
+
+    class WB(FakeBroker):
+        def order_executions(self, creds, cid):
+            return ("FILLED", rows)
+    fb = WB(positions={})
+    fb.caps = Caps(fills_of_earlier_orders=False)
+    monkeypatch.setattr(_book, "FAST_PATH", True)
+    monkeypatch.setattr("dqengine.adapters.catalog.get_adapter",
+                        lambda name: fb)
+    monkeypatch.setattr(executor, "_poll_executions", lambda *a, **k: (0, 0))
+    monkeypatch.setattr(executor, "_in_close_window", lambda *a, **k: False)
+    executor._GATHER_CACHE.pop(conn, None)
+    executor._SYNC_GATE.pop(conn, None)
+    book = book_for(conn)
+    book.apply_audit({"TQQQ": 40.0}, [
+        {"id": "sl-tp-old", "client_order_id": "sl-tp-old", "symbol": "TQQQ",
+         "qty": 40.0, "side": "sell", "type": "limit", "limit_price": 60.5}])
+    return fb, book
+
+
+def test_a_recovered_fill_is_not_taken_off_the_book_twice(
+        pg, owner_id, monkeypatch):
+    fb, book = _tp_filled_rig(pg, owner_id, monkeypatch, "cw", "dw")
+    executor.sync_broker_account("cw", fast=False)
+    assert len(_execs(pg, "cw")) == 1                 # the fill was recovered
+    assert book.positions_view().get("TQQQ", 0.0) == 0.0
+    assert book.open_orders_view() == []
+
+
+def test_a_fast_pass_that_waited_behind_the_audit_sends_nothing(
+        pg, owner_id, monkeypatch):
+    """The fast pass checks the book BEFORE it waits for the connection
+    lock. The audit that held the lock froze the book and recovered the
+    fill; the fast pass must look again once it is inside."""
+    from rig import submitted
+    fb, book = _tp_filled_rig(pg, owner_id, monkeypatch, "cv", "dv")
+    real_lock = executor._conn_lock("cv")
+
+    class AuditGoesFirst:
+        """The lock, as the fast pass met it: held by an audit sweep."""
+        def __enter__(self):
+            if not getattr(self, "ran", False):
+                self.ran = True
+                executor.sync_broker_account("cv", fast=False)
+            return real_lock.__enter__()
+
+        def __exit__(self, *a):
+            return real_lock.__exit__(*a)
+    gate = AuditGoesFirst()
+    orig = executor._conn_lock
+    monkeypatch.setattr(
+        executor, "_conn_lock",
+        lambda c: gate if (c == "cv" and not getattr(gate, "ran", False))
+        else orig(c))
+    res = executor.sync_broker_account("cv", fast=True)
+    assert submitted(fb) == [], submitted(fb)
+    assert res == "fallback"
+
+
+def test_the_audit_after_a_recovery_waits_for_the_sleeve(
+        pg, owner_id, monkeypatch):
+    """The book is frozen after a recovery, so the next audit transmits
+    for itself. The sleeve still wants its 40 shares until it re-runs with
+    the fill; the ledger explains that difference, and nothing is bought."""
+    from rig import submitted
+    fb, book = _tp_filled_rig(pg, owner_id, monkeypatch, "cu", "du")
+    executor.sync_broker_account("cu", fast=False)
+    assert not book.fast_path_ok()[0]
+    executor._SYNC_GATE.pop("cu", None)
+    executor.sync_broker_account("cu", fast=False)
+    assert submitted(fb) == [], submitted(fb)
+    with pg() as s:
+        rep = s.get(persistence.Deployment, "du").position["execution"]
+    assert any("TQQQ market-delta frozen" in a for a in rep["actions"]), rep

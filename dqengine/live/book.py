@@ -109,16 +109,20 @@ class Book:
         with self.lock:
             self.open_orders.pop(broker_order_id, None)
 
-    def note_fills(self, rows) -> None:
+    def note_fills(self, rows, positions: bool = True) -> None:
         """Executions-poll ingest: apply fills between audits. `rows`
         iterable of (broker_order_id, client_order_id, symbol, signed_qty).
         The client id fallback is what clears an idless ack's entry (see
-        note_ack) -- the fill IS the affirmative evidence."""
+        note_ack) -- the fill IS the affirmative evidence.
+
+        positions=False clears the order entry only: for fills learned
+        AFTER an audit whose position read already contains them."""
         with self.lock:
             for boid, cid, sym, qty in rows:
                 sym = (sym or "").upper()
-                self.positions[sym] = self.positions.get(sym, 0.0) \
-                    + float(qty)
+                if positions:
+                    self.positions[sym] = self.positions.get(sym, 0.0) \
+                        + float(qty)
                 key = boid if boid and boid in self.open_orders else None
                 if key is None and cid:
                     for k, o in self.open_orders.items():

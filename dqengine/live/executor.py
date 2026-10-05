@@ -340,6 +340,15 @@ def _recover_into(report: dict, adapter, creds, conn_id: str,
         report["actions"].append(
             f"recovered {got['new']} fill row(s) of earlier order "
             f"{got['cid']} ({got['status']})")
+        # The ledger just changed under everything this sweep gathered:
+        # the rails a fast pass would reuse were computed without this
+        # fill, and the sleeve has not re-run with it. No fast submit
+        # until an audit has read the account again (2026-10-05).
+        _GATHER_CACHE.pop(conn_id, None)
+        from dqengine.live.book import book_for
+        book_for(conn_id).freeze(
+            f"fill of earlier order {got['cid']} recovered — "
+            f"waiting for the next audit")
 
 
 def _rate_refused(e) -> bool:
@@ -3234,6 +3243,13 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             # same shape as the pacing skips above: nothing was sent, so
             # there is nothing to record
             return "fallback" if fast else "skipped"
+        if fast and not book.fast_path_ok()[0]:
+            # the check at the top ran BEFORE this pass waited for the
+            # lock. An audit that held it may have frozen the book since
+            # (2026-10-05: it froze on a stale want and recovered an
+            # earlier order's fill; the fast pass that had been waiting
+            # then bought the shares back twice over). Look again.
+            return "fallback"
         if fast and book.creds is not None \
                 and time.time() - book.creds_at < 60:
             # session freshness is the auditor's job on its cadence; the

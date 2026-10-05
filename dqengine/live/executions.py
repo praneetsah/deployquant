@@ -386,7 +386,12 @@ def recover_earlier_fills(adapter, creds: dict, conn_id: str, open_orders,
     if fills:
         try:
             from dqengine.live.book import book_for
-            book_for(conn_id).note_fills(fills)
+            # positions=False: the order is known to have filled only
+            # because it left the venue's open list, and the audit that
+            # saw that has already written the venue's position -- fill
+            # included -- into the book. Taking the shares off again is
+            # what sized the 2026-10-05 buy-back at twice the position.
+            book_for(conn_id).note_fills(fills, positions=False)
         except Exception as e:
             print(f"[executions] book fill-note failed {conn_id}: {e!r}",
                   flush=True)
