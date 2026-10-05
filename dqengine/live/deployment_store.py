@@ -59,11 +59,16 @@ class _DeploymentTx:
         dep.equity = out["equity"]
         # already merged by the driver (I7): the keys the replay never emits,
         # position["execution"] above all, survive a tick
-        dep.position = out["position"]
+        now = datetime.now(timezone.utc)
+        # when this payload was computed: last_tick also moves on a FAILED
+        # tick, and the executor needs to know which fills a payload has
+        # had the chance to fold (executor._late_fills_read)
+        dep.position = {**(out["position"] or {}),
+                        "clean_tick_at": now.isoformat()}
         dep.fills = out["fills"]
         dep.journal = out["journal"]
         dep.tick_error = None
-        dep.last_tick = datetime.now(timezone.utc)
+        dep.last_tick = now
         self._s.commit()
 
     def commit_error(self, text: str) -> None:

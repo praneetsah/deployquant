@@ -51,7 +51,10 @@ def test_a_committed_payload_lands_whole_and_clears_the_error(pg, owner_id):
         tx.commit_payload(out)
     with pg() as s:
         d = s.get(persistence.Deployment, dep_id)
-    assert d.stats == out["stats"] and d.position == {"qty": 1}
+    # the payload, plus the stamp of when it was computed (2026-10-05)
+    assert d.stats == out["stats"]
+    assert d.position == {"qty": 1,
+                          "clean_tick_at": d.last_tick.isoformat()}
     assert d.journal == [{"log": "x"}] and d.tick_error is None
     assert d.last_tick is not None
 

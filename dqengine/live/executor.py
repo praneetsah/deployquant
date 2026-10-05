@@ -138,6 +138,38 @@ def conn_sweep_lock(conn_id: str):
                 conn.close()        # still be holding the lock
 
 
+def _short_kw(opens_short: bool) -> dict:
+    """`opens_short` for the venue adapter, passed only when it is true: a
+    sell that opens a short has to say so (Webull's side is BUY | SELL |
+    SHORT, and a plain SELL that would open one is refused with
+    GENERATE_NEW_SHORT_POSITION -- 2026-10-05, 2,644 times in one session).
+    Until then both wrappers below dropped the argument."""
+    return {"opens_short": True} if opens_short else {}
+
+
+# Market orders the venue refused today, per connection:
+# {(conn_id, ET day): {(SYM, side, qty): [count, last message]}}. A refusal
+# the venue repeats is not going to change by asking again a minute later;
+# the SAME order (symbol, side, size) stops being sent after
+# REFUSED_MAX_PER_DAY when it would ADD exposure. A different size is a
+# different order and gets its own tries. In memory on purpose: a restart
+# forgets it and the order gets that many more tries, which is the right
+# side to be wrong on.
+REFUSED_MAX_PER_DAY = 3
+_REFUSED_TODAY: dict = {}
+_REFUSED_LOCK = _threading.Lock()
+
+
+def refused_today(conn_id: str) -> dict:
+    key = (conn_id, datetime.now(ET).date().isoformat())
+    with _REFUSED_LOCK:
+        if key not in _REFUSED_TODAY:
+            for k in [k for k in _REFUSED_TODAY if k[0] == conn_id]:
+                del _REFUSED_TODAY[k]
+            _REFUSED_TODAY[key] = {}
+        return _REFUSED_TODAY[key]
+
+
 class BookAdapter:
     """The fast path's view (direct-submit spec §4): reconcile() reads the
     account from the BOOK (0ms) and mutations go to the real adapter AND
@@ -159,7 +191,7 @@ class BookAdapter:
     def submit(self, creds, symbol, qty, side, order_type="market",
                tif="day", limit_price=None, stop_price=None,
                trail_percent=None, extended_hours=False,
-               client_order_id=None):
+               client_order_id=None, opens_short=False):
         cid = client_order_id or ""
         self._book.note_submit(cid, symbol, side, qty)
         try:
@@ -167,7 +199,7 @@ class BookAdapter:
                 creds, symbol, qty, side, order_type=order_type, tif=tif,
                 limit_price=limit_price, stop_price=stop_price,
                 trail_percent=trail_percent, extended_hours=extended_hours,
-                client_order_id=client_order_id)
+                client_order_id=client_order_id, **_short_kw(opens_short))
         except Exception:
             self._book.note_reject(cid)
             raise
@@ -240,7 +272,7 @@ class AuditAdapter:
     def submit(self, creds, symbol, qty, side, order_type="market",
                tif="day", limit_price=None, stop_price=None,
                trail_percent=None, extended_hours=False,
-               client_order_id=None):
+               client_order_id=None, opens_short=False):
         def _do():
             # 2026-09-01: the auditor's own submits must enter the book's
             # settle window too, or apply_audit wipes their ack with the
@@ -252,7 +284,8 @@ class AuditAdapter:
                     tif=tif, limit_price=limit_price, stop_price=stop_price,
                     trail_percent=trail_percent,
                     extended_hours=extended_hours,
-                    client_order_id=client_order_id)
+                    client_order_id=client_order_id,
+                    **_short_kw(opens_short))
             except Exception:
                 self._book.note_reject(client_order_id or "")
                 raise
@@ -1275,6 +1308,52 @@ _EMPTY_GATES = {"open_qty": {}, "open_rows": {}, "unfolded": {},
                 "epoch": {}}
 
 
+# A fill that reaches the ledger on a LATER day than it happened (an earlier
+# order's fill recovered after midnight, after an outage, or entered by
+# hand) is invisible to the rail above, which reads today's fills only. The
+# sleeve still holds the shares until it has re-run with the row, and the
+# sweep in between would buy them back (2026-10-05, found in a test). Its
+# symbol is held until the deployment has ticked cleanly this long after
+# the row was stored.
+LATE_FOLD_MARGIN_S = 20.0
+LATE_FILL_LOOKBACK_DAYS = 3
+
+
+def _late_fills_read(s, conn_id, today_start_et) -> set:
+    """Symbols with an earlier-day fill of one of this connection's running
+    deployments that was stored after that deployment's last CLEAN tick
+    (deployment_store stamps position["clean_tick_at"]; a failed tick moves
+    last_tick but folds nothing). A payload from before that stamp existed
+    falls back to last_tick."""
+    from dqengine.live.persistence import Deployment, Execution
+    since = datetime.now(timezone.utc) - timedelta(
+        days=LATE_FILL_LOOKBACK_DAYS)
+    out: set = set()
+    rows = (s.query(Execution.symbol, Execution.created_at,
+                    Deployment.last_tick, Deployment.position)
+            .join(Deployment, Deployment.id == Execution.deployment_id)
+            .filter(Execution.connection_id == conn_id,
+                    Execution.filled_at < today_start_et,
+                    Execution.created_at >= since,
+                    Deployment.status == "running")
+            .all())
+    for sym, stored, last_tick, position in rows:
+        if stored is None:
+            continue
+        clean = last_tick
+        stamp = (position or {}).get("clean_tick_at")
+        if stamp:
+            try:
+                clean = datetime.fromisoformat(stamp)
+            except (TypeError, ValueError):
+                clean = last_tick
+        folded = (clean is not None
+                  and (clean - stored).total_seconds() >= LATE_FOLD_MARGIN_S)
+        if not folded:
+            out.add((sym or "").upper())
+    return out
+
+
 def _exe_sums_read(s, conn_id) -> dict:
     """Today's signed fills of OUR OWN orders (sl- cids) per symbol -- the
     enforce fold rail's input."""
@@ -1630,6 +1709,7 @@ def _known_symbols_read(session, conn_id: str) -> set:
 def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
               record, moc_wants=(), entry_wants=(), moc_done=(),
               recent_refusals=(), qb_cooldown=(), fold_pending=(),
+              refused_market=None,
               submit_backoff: Optional[dict] = None,
               buying_power: Optional[float] = None,
               now: Optional[datetime] = None,
@@ -1746,6 +1826,17 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
                                         "reason": msg}
         else:
             report["errors"].append(msg)
+            # a sibling of the order that tripped the gateway was already
+            # on the wire and comes back with the same not-ready refusal:
+            # that is the venue's hours, not this order, and never counts
+            if (refused_market is not None
+                    and entry.get("action") == "submit"
+                    and entry.get("order_type") == "market"
+                    and not _is_market_not_ready(full_msg)):
+                k = (entry.get("symbol"), entry.get("side"),
+                     float(entry.get("qty") or 0.0))
+                refused_market[k] = [
+                    (refused_market.get(k) or [0, ""])[0] + 1, msg]
         record({**entry, "action": "refused", "status": "rejected"})
 
     def act(fn, entry, gate_only=False):
@@ -1986,13 +2077,35 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         if qabs <= 0:
             continue
         side = "buy" if qty > 0 else "sell"
+        # SHORTS: the same three cases as a market delta (see "2) market
+        # deltas"). An on-close order through zero is cut to the part that
+        # closes the position; what is left of the target is the first
+        # market delta after it fills.
+        moc_have = (float(positions.get(sym) or 0.0)
+                    + moc_native_qty.get(sym, 0.0))
+        moc_opens_short = False
+        through = ((side == "sell" and 0 < moc_have < qabs)
+                   or (side == "buy" and 0 < -moc_have < qabs))
+        if through:
+            cut = _round_step(abs(moc_have), adapter.caps.qty_step)
+            if cut > 0:
+                report["actions"].append(
+                    f"{kind} {sym}: {side} {qabs:g} would cross zero from "
+                    f"{moc_have:g} — sending {cut:g} to close; the rest "
+                    f"follows as a market order once it has filled")
+                qabs = cut
+            elif side == "sell":
+                moc_opens_short = True
+        elif side == "sell" and moc_have <= 0:
+            moc_opens_short = True
         cid = f"{cid_prefix}-{uuid.uuid4().hex[:8]}"
 
         def _submit(sym=sym, qabs=qabs, side=side, kind=kind, price=price,
-                    cid=cid):
+                    cid=cid, opens_short=moc_opens_short):
             return adapter.submit(creds, sym, qabs, side, order_type=kind,
                                   tif="day", limit_price=price,
-                                  client_order_id=cid)
+                                  client_order_id=cid,
+                                  **_short_kw(opens_short))
 
         o = act(_submit,
                 {"action": "submit", "symbol": sym, "qty": qabs, "side": side,
@@ -2308,7 +2421,58 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
                     "broker_order_id": "", "client_order_id": "",
                     "status": "over_notional", "deployment_id": None})
             continue
+        # SHORTS (2026-10-05). What the account holds once everything
+        # already in flight has landed decides what an order IS:
+        #   a sell that leaves it long -> a plain sell
+        #   a sell from flat or short  -> it OPENS (or adds to) a short,
+        #                                 and the venue has to be told
+        #   a sell through zero        -> two different orders. Sell to
+        #                                 flat now; the short is the next
+        #                                 sweep's delta, sent as a short.
+        #   a buy through zero         -> the mirror: buy the short back
+        #                                 now, the long follows.
+        # A holding smaller than one order step cannot be sold or bought
+        # back at all; it counts as flat.
+        eff = have + pending_qty + moc_native_qty.get(sym, 0.0)
+        opens_short = False
+        if delta < 0 and eff > 0 and eff + delta < 0:
+            flat = _round_step(-eff, adapter.caps.qty_step)
+            if flat != 0:
+                report["actions"].append(
+                    f"{sym} long {eff:g} -> short {want:g}: selling to "
+                    f"flat first, the short follows on the next sweep")
+                delta = flat
+            else:
+                opens_short = True
+        elif delta < 0 and eff <= 0:
+            opens_short = True
+        elif delta > 0 and eff < 0 and eff + delta > 0:
+            flat = _round_step(-eff, adapter.caps.qty_step)
+            if flat != 0:
+                report["actions"].append(
+                    f"{sym} short {eff:g} -> long {want:g}: buying the "
+                    f"short back first, the long follows on the next sweep")
+                delta = flat
+        if opens_short and _round_step(have, adapter.caps.qty_step) > 0:
+            # the account is still long at the venue: sells of ours are in
+            # flight (a pending market sell, an on-close ticket). A short
+            # sent now would reach a venue that sees a long position.
+            report["actions"].append(
+                f"{sym} short of {abs(delta):g} waits — the sell that "
+                f"closes the long has not filled yet")
+            continue
         side = "buy" if delta > 0 else "sell"
+        # The same market order (symbol, side, size) this venue has refused
+        # REFUSED_MAX_PER_DAY times today is not sent again when THIS ORDER
+        # would add exposure. One that reduces a position is never held
+        # back: that would strand risk.
+        n_ref, why_ref = (refused_market or {}).get(
+            (sym, side, float(abs(delta)))) or (0, "")
+        if n_ref >= REFUSED_MAX_PER_DAY and abs(eff + delta) > abs(eff):
+            report["actions"].append(
+                f"{side.upper()} {abs(delta)} {sym} not sent — refused "
+                f"{n_ref} times today: {why_ref}"[:300])
+            continue
         # deterministic cid (spec: 2026-08-31-order-journal.md): two passes
         # computing the same unchanged intent produce the SAME cid, and the
         # journal's unique gate collapses them -- no uuid, no duplicates
@@ -2321,9 +2485,11 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         else:
             cid = f"sl-mkt-{sym}-{uuid.uuid4().hex[:10]}"
 
-        def _submit(sym=sym, delta=delta, side=side, cid=cid):
+        def _submit(sym=sym, delta=delta, side=side, cid=cid,
+                    opens_short=opens_short):
             return adapter.submit(creds, sym, abs(delta), side,
-                                   client_order_id=cid)
+                                   client_order_id=cid,
+                                   **_short_kw(opens_short))
 
         entry = {"action": "submit", "symbol": sym, "qty": abs(delta),
                  "side": side, "order_type": "market", "limit_price": None,
@@ -3193,6 +3359,12 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                 exe_sums = _gc_entry["exe_sums"]
             else:
                 exe_sums = _exe_sums_read(s, conn_id)
+        late_fills: set = set()
+        if truth_mode in ("observe", "enforce"):
+            if _use_cache and _gc_entry.get("late_fills") is not None:
+                late_fills = _gc_entry["late_fills"]
+            else:
+                late_fills = _late_fills_read(s, conn_id, today_start_et)
         # journal gates (spec: 2026-08-31-order-journal.md): per-symbol
         # open/unfolded/unresolved/epoch from the write-ahead ledger. Safe
         # to serve from the 2s cache -- the UNIQUE(conn, cid) constraint,
@@ -3220,6 +3392,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                 "exe_sums": (exe_sums if truth_mode == "enforce"
                              else None),
                 "known_symbols": known_symbols,
+                "late_fills": late_fills,
                 "journal_gates": journal_gates}
 
     owner_fast = (not fast) and book.fast_path_ok()[0]
@@ -3294,8 +3467,12 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                         model_folded_side)
                     if truth_mode == "enforce":
                         exe_sums = _exe_sums_read(js, conn_id)
+                    # the poll may have just stored an earlier day's fill
+                    late_fills = _late_fills_read(js, conn_id,
+                                                  today_start_et)
                 gc = _GATHER_CACHE.get(conn_id)
                 if gc is not None:
+                    gc["late_fills"] = late_fills
                     gc["journal_gates"] = journal_gates
                     gc["exe_sums"] = (exe_sums if truth_mode == "enforce"
                                       else None)
@@ -3319,6 +3496,9 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                          - model_folded.get(fsym, 0.0))
                 if abs(fdiff) > 1e-6:
                     fold_pending[fsym] = fdiff
+        for fsym in late_fills:
+            # size unknown to this rail -> _fold_explains always freezes
+            fold_pending[fsym] = None
 
         # one state per deployment, folded by the private combiner when this
         # connection has more than one of them. Built HERE, inside the try:
@@ -3345,6 +3525,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                      truth_mode=truth_mode, moc_done=moc_done,
                      recent_refusals=recent_refusals, qb_cooldown=qb_cooldown,
                      fold_pending=fold_pending, journal_gates=journal_gates,
+                     refused_market=refused_today(conn_id),
                      submit_backoff_in=submit_backoff_in,
                      known_symbols=known_symbols,
                      buying_power=buying_power, adapter=wrapped)
@@ -3359,6 +3540,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                       entry_wants=entry_wants, moc_done=moc_done,
                       recent_refusals=recent_refusals,
                       qb_cooldown=qb_cooldown, fold_pending=fold_pending,
+                      refused_market=refused_today(conn_id),
                       buying_power=buying_power,
                       submit_backoff=submit_backoff_in,
                       conn_id=None,   # shadow: never transmits, never journals
@@ -3391,6 +3573,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
                       entry_wants=entry_wants, moc_done=moc_done,
                       recent_refusals=recent_refusals,
                       qb_cooldown=qb_cooldown, fold_pending=fold_pending,
+                      refused_market=refused_today(conn_id),
                       buying_power=buying_power,
                       submit_backoff=submit_backoff_in,
                       conn_id=conn_id, journal_gates=journal_gates,

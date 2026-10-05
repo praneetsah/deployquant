@@ -306,3 +306,100 @@ def test_the_audit_after_a_recovery_waits_for_the_sleeve(
     with pg() as s:
         rep = s.get(persistence.Deployment, "du").position["execution"]
     assert any("TQQQ market-delta frozen" in a for a in rep["actions"]), rep
+
+
+def test_a_fill_recovered_on_a_later_day_holds_its_symbol_until_the_sleeve_ticks(
+        pg, owner_id, monkeypatch):
+    """The take-profit filled yesterday and is only recovered today. The
+    rail that reads today's fills cannot see it; the sleeve still wants its
+    40 shares. Nothing is bought until the deployment has ticked cleanly
+    after the row was stored."""
+    from rig import submitted
+    fb, book = _tp_filled_rig(pg, owner_id, monkeypatch, "ct", "dt",
+                              filled_at=datetime.now(timezone.utc)
+                              - timedelta(days=1, hours=2))
+    executor.sync_broker_account("ct", fast=False)       # recovers
+    assert len(_execs(pg, "ct")) == 1
+    for _ in range(2):
+        executor._SYNC_GATE.pop("ct", None)
+        executor.sync_broker_account("ct", fast=False)
+    assert submitted(fb) == [], submitted(fb)
+    with pg() as s:
+        d = s.get(persistence.Deployment, "dt")
+        assert any("TQQQ market-delta frozen" in a
+                   for a in d.position["execution"]["actions"])
+        # a tick that FAILED moves last_tick and folds nothing: the last
+        # clean payload is still the one from before the row was stored
+        pos = dict(d.position)
+        pos["clean_tick_at"] = (datetime.now(timezone.utc)
+                                - timedelta(minutes=5)).isoformat()
+        d.position = pos
+        d.last_tick = datetime.now(timezone.utc) + timedelta(seconds=60)
+        d.tick_error = "boom"
+        s.commit()
+    executor._SYNC_GATE.pop("ct", None)
+    executor._GATHER_CACHE.pop("ct", None)
+    executor.sync_broker_account("ct", fast=False)
+    assert submitted(fb) == []
+    with pg() as s:
+        d = s.get(persistence.Deployment, "dt")
+        pos = dict(d.position)
+        pos["clean_tick_at"] = (datetime.now(timezone.utc)
+                                + timedelta(seconds=60)).isoformat()
+        d.position = pos
+        d.tick_error = None
+        s.commit()
+    for _ in range(2):      # an audit that sees the want, then one that sends
+        executor._SYNC_GATE.pop("ct", None)
+        executor._GATHER_CACHE.pop("ct", None)
+        executor.sync_broker_account("ct", fast=False)
+    # released: the (test's unchanged) sleeve wants 40 and gets them
+    assert [(o["side"], o["qty"]) for o in submitted(fb)] == [("buy", 40.0)]
+
+
+def test_an_old_fill_does_not_hold_its_symbol_while_a_deployment_is_in_error(
+        pg, owner_id):
+    """Found by review: reading `tick_error` made every fill of the last
+    three days look unfolded for as long as the error stood, which froze
+    sells that reduce the position too."""
+    from rig import seed
+    seed(pg, owner_id, conn_id="ce", dep_id="de", truth="enforce")
+    now = datetime.now(timezone.utc)
+    with pg() as s:
+        s.add(persistence.Execution(
+            connection_id="ce", deployment_id="de", broker_order_id="b1",
+            broker_exec_id="b1:0", client_order_id="sl-mkt-x", symbol="TQQQ",
+            signed_qty=40, price=60.0, fees=0.0,
+            filled_at=now - timedelta(days=2),
+            created_at=now - timedelta(days=2)))
+        d = s.get(persistence.Deployment, "de")
+        d.position = {**d.position, "clean_tick_at":
+                      (now - timedelta(hours=3)).isoformat()}
+        d.last_tick, d.tick_error = now, "boom"
+        s.commit()
+        today0 = now - timedelta(hours=1)
+        assert executor._late_fills_read(s, "ce", today0) == set()
+        # stored AFTER the last clean payload: held
+        s.add(persistence.Execution(
+            connection_id="ce", deployment_id="de", broker_order_id="b2",
+            broker_exec_id="b2:0", client_order_id="sl-tp-y", symbol="SPY",
+            signed_qty=-5, price=400.0, fees=0.0,
+            filled_at=now - timedelta(days=1), created_at=now))
+        s.commit()
+        assert executor._late_fills_read(s, "ce", today0) == {"SPY"}
+
+
+def test_a_clean_tick_stamps_when_its_payload_was_computed(pg, owner_id):
+    from rig import seed
+    from dqengine.live import deployment_store
+    seed(pg, owner_id, conn_id="cs", dep_id="ds")
+    with pg() as s:
+        store = deployment_store._DeploymentTx(s, "ds")
+        d = store.dep
+        store.commit_payload({"stats": {}, "equity": [], "fills": [],
+                              "journal": [], "position": {"qty": 0}})
+        stamp = d.position["clean_tick_at"]
+        assert datetime.fromisoformat(stamp) == d.last_tick
+        store.commit_error("boom")
+        assert d.position["clean_tick_at"] == stamp and d.last_tick > \
+            datetime.fromisoformat(stamp)
