@@ -24,7 +24,7 @@ Supported: rule strategies over any number of symbols, at minute or second
 resolution — session_open / before_close / at_time / at_close triggers with
 day selectors, once_per guards, market_order (buy and sell;
 pct_equity/dollars/shares/pct_position, ref last/session_open/prior_close),
-managed_target (limit), at_close_order (MOC/LOC), liquidate, set_weights,
+managed_target (limit or trailing_stop), at_close_order (MOC/LOC), liquidate, set_weights,
 python capsules; exprs over params, pos:*, sleeve:cash|equity, custom
 `metrics` definitions and every indicator the IndicatorEngine knows,
 if/cases/all/any/not/comparisons/math. `set_weights` is an ORDINARY rule
@@ -449,14 +449,32 @@ def generate_python(ir: dict, margin_max: float | None = None) -> str:
             item["side"] = -1 if a.get("side", "buy") == "sell" else 1
             item["size"] = _size(ec, a.get("size") or {})
         elif atype == "managed_target":
-            if a.get("order_type", "limit") != "limit":
-                _u(f'{a.get("order_type")} managed targets')
+            otype = a.get("order_type", "limit")
+            if otype not in ("limit", "trailing_stop"):
+                _u(f'{otype} managed targets')
+            item["order_type"] = otype
+            if otype == "trailing_stop":
+                tp = a.get("trail_pct")
+                # A number or a param only: the IR engine re-read trail_pct
+                # on every fire, and a resting trailing ticket has no way
+                # to be told a new percentage without losing its high-water
+                # mark. Anything that varies by bar is refused, not frozen.
+                if isinstance(tp, dict) and set(tp) == {"param"}:
+                    pass
+                elif isinstance(tp, bool) or not isinstance(tp, (int, float)):
+                    _u("a trailing_stop managed target whose trail_pct is "
+                       "not a number or a param")
+                elif not 0.0 < tp < 1.0:
+                    _u(f"a trailing_stop trail_pct of {tp!r} (a fraction in "
+                       f"(0, 1): 0.05 means 5%)")
+                item["trail_px"] = ec.compile(tp)
             # qty is accepted and ignored: the IR engine never reads
             # managed_target["qty"] and always sells the whole position
             # (_check_targets). Honouring it here would trade differently
             # from the oracle; refusing it would reject saved strategies
             # that set a field the engine has always ignored.
-            item["target_px"] = ec.compile(a["price"])
+            if otype == "limit":
+                item["target_px"] = ec.compile(a["price"])
             item["target_qty_note"] = str(a.get("qty", "all"))
         elif atype == "at_close_order":
             item.update(_at_close_order(ec, a))
@@ -536,6 +554,8 @@ def generate_python(ir: dict, margin_max: float | None = None) -> str:
     name = meta.get("name") or "Ejected Strategy"
     cls = "".join(p for p in "".join(
         c if c.isalnum() else " " for c in name).title().split()) or "Ejected"
+    if cls[0].isdigit():
+        cls = "S" + cls         # "20-day momentum" is not an identifier
     res_enum = "Resolution.SECOND" if resolution == "second" \
         else "Resolution.MINUTE"
     # The IR engine fires its session_open batch on the session's FIRST bar
@@ -766,6 +786,34 @@ def _place_or_update_target(self, sym, qty, limit_px, tag=""):
     else:
         self.limit_order(sym, -qty, limit_px, tag=tag)""", 1)
     o.w()
+    trailing = any(i.get("order_type") == "trailing_stop" for i in compiled
+                   if i["action"]["type"] == "managed_target")
+    if trailing:
+        o.block("""def _place_or_update_trail(self, sym, qty, trail, tag=""):
+    # One resting GTC trailing sell, updated in place: the ticket's own stop
+    # IS the high-water mark, so a re-fire changes the quantity and nothing
+    # else (cancel-and-resubmit would restart the trail from today).
+    if not 0.0 < trail < 1.0:
+        raise ValueError(f"trail_pct must be a fraction in (0, 1), got "
+                         f"{trail!r}")
+    tickets = [t for t in self.transactions.get_open_order_tickets(sym)
+               if t.order_type == OrderType.TRAILING_STOP and t.quantity < 0]
+    if tickets:
+        fields = UpdateOrderFields()
+        fields.quantity = -qty
+        tickets[0].update(fields)
+        for extra in tickets[1:]:
+            extra.cancel()
+    else:
+        t = self.trailing_stop_order(sym, -qty, trail, True, tag=tag)
+        # The IR engine's high-water mark started at the last price seen
+        # and then took the max with each bar's high; the runtime anchors
+        # on the first bar's high alone. Seeding the stop from the last
+        # price makes its max(stop, high * (1 - trail)) the same quantity.
+        fields = UpdateOrderFields()
+        fields.stop_price = self.securities[sym].price * (1.0 - trail)
+        t.update(fields)""", 1)
+        o.w()
     if multi:
         # IR truth on the MULTI path (_fire_rule_inner's liquidate branch):
         # a liquidate cancels every resting target and closes the WHOLE
@@ -819,7 +867,7 @@ def _place_or_update_target(self, sym, qty, limit_px, tag=""):
     # Deliberately a comment on the GENERATOR, not on the emitted source:
     # every byte inside the o.block below is frozen in 66 golden fixtures,
     # and this phase's contract is that not one of them moves.
-    o.block("""def on_order_event(self, e):
+    on_order_event = """def on_order_event(self, e):
     # ANY fill that leaves this symbol flat tears down its resting orders.
     # Not housekeeping: the IR engine deletes a managed target the moment
     # sleeve.qty <= 0 (_check_targets), while dqengine.runtime's check_resting
@@ -837,7 +885,14 @@ def _place_or_update_target(self, sym, qty, limit_px, tag=""):
         # the guard release, on the other hand, is NOT for every exit: a
         # managed-target fill is one of the IR engine's three _on_flat
         # sites, a plain market sell is not.
-        self._on_flat(e.symbol)""", 1)
+        self._on_flat(e.symbol)"""
+    if trailing:
+        # a trailing exit that fills is a managed-target fill too
+        on_order_event = on_order_event.replace(
+            "ticket.order_type == OrderType.LIMIT:",
+            "ticket.order_type in (OrderType.LIMIT,\n"
+            "                                          OrderType.TRAILING_STOP):")
+    o.block(on_order_event, 1)
     o.w()
 
     def guard_check(item) -> str | None:
@@ -913,12 +968,16 @@ def _place_or_update_target(self, sym, qty, limit_px, tag=""):
             o.w(f"qty = int(self.portfolio[{sym!r}].quantity)", ind)
             o.w("if qty <= 0:", ind)
             o.w("return", ind + 1)
-            o.w(f"limit_px = {item['target_px']}", ind)
-            # `ir:<rule id>` — the identity the live layer turns into the
-            # broker cid prefix, so a block deployment compiled to python
-            # keeps the cid prefixes its IR deployment had.
-            o.w(f"self._place_or_update_target({sym!r}, qty, limit_px, "
-                f"tag={tag})", ind)
+            if item["order_type"] == "trailing_stop":
+                o.w(f"self._place_or_update_trail({sym!r}, qty, "
+                    f"{item['trail_px']}, tag={tag})", ind)
+            else:
+                o.w(f"limit_px = {item['target_px']}", ind)
+                # `ir:<rule id>` — the identity the live layer turns into
+                # the broker cid prefix, so a block deployment compiled to
+                # python keeps the cid prefixes its IR deployment had.
+                o.w(f"self._place_or_update_target({sym!r}, qty, limit_px, "
+                    f"tag={tag})", ind)
             if gcons:
                 o.w(gcons, ind)
         elif atype == "at_close_order":
