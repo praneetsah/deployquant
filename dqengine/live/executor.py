@@ -237,6 +237,68 @@ class BookAdapter:
         return getattr(self._inner, name)
 
 
+def kept_now(positions, kept) -> dict:
+    """{SYM: signed qty} of the owner's kept shares in the account on this
+    pass. `kept` is executions.kept_holdings: each symbol's kept amount and
+    what the managed deployments hold by their books. Capped at what the
+    account holds beyond those books, on the same side: kept shares sold by
+    hand (seen or not), or a late fill of the stopped deployment's own
+    order, only ever shrink it, so no deployment buys them back."""
+    out = {}
+    for sym, kb in (kept or {}).items():
+        k, booked = float(kb["kept"]), float(kb.get("booked") or 0.0)
+        spare = float((positions or {}).get(sym) or 0.0) - booked
+        if k > 0:
+            q = min(k, max(spare, 0.0))
+        elif k < 0:
+            q = max(k, min(spare, 0.0))
+        else:
+            q = 0.0
+        if q:
+            out[sym] = q
+    return out
+
+
+def carve_kept(positions, kept) -> dict:
+    """The account as the deployments see it: the owner's kept shares
+    (kept_now) taken out, symbol by symbol."""
+    out = dict(positions or {})
+    for sym, q in kept_now(positions, kept).items():
+        out[sym] = float(out.get(sym) or 0.0) - q
+    return out
+
+
+class KeptView:
+    """An adapter whose positions() leaves out the owner's kept shares.
+    Wraps the book or audit adapter for reconcile() only: what those cache
+    (fetched_positions, recorded) stays the venue's own view. After
+    positions(), `kept_now` says how many shares per symbol were taken out,
+    which reconcile uses to hold any order that would trade into them."""
+
+    def __init__(self, inner, kept):
+        self._inner = inner
+        self._kept = dict(kept or {})
+        self.kept_now = {}
+        self.kept_short = {}
+
+    def positions(self, creds):
+        real = self._inner.positions(creds)
+        self.kept_now = kept_now(real, self._kept)
+        # the account holds less than the kept shares plus the deployments'
+        # books: either the owner sold some by hand or a book is ahead of
+        # the venue (a fill not polled yet). Which one is unknowable here,
+        # so nothing may trade toward the kept side: {SYM: kept sign}
+        self.kept_short = {}
+        for sym, kb in self._kept.items():
+            k = float(kb["kept"])
+            if abs(self.kept_now.get(sym, 0.0)) < abs(k) - 1e-9:
+                self.kept_short[sym] = 1 if k > 0 else -1
+        return carve_kept(real, self._kept)
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
 class AuditAdapter:
     """The auditor's view: REAL fetches (cached on the instance so the
     pass can apply them to the book), and mutations either pass through
@@ -763,6 +825,60 @@ def _allocation_rail_adjust(s, conn_id, managed_ids) -> dict:
         a["buy" if q > 0 else "sell"] += sign * abs(q)
         a["net"] += sign * q
     return out
+
+
+# (conn_id, SYM) -> when this process first saw the account hold fewer of
+# the owner's kept shares than recorded, with nothing pending to explain it
+_KEPT_SHORT_SINCE: dict = {}
+KEPT_WRITE_DOWN_AFTER_S = 120.0
+
+_LIQUIDATIONS = None
+
+
+def _kept_self_heal(report, conn_id, seen, fold_pending, late_fills,
+                    managed) -> None:
+    """A kept-short symbol (KeptView.kept_short) holds the running
+    deployments' orders toward the kept side. When this audit's poll is
+    clean, no fill is waiting to be folded, and that has lasted
+    KEPT_WRITE_DOWN_AFTER_S, the shortfall is real: ask the host to lower
+    the kept amount to what the account holds (it re-checks open orders and
+    unallocated fills itself). Never raises."""
+    from dqengine.live import executions as _executions
+    short = getattr(seen, "kept_short", None) or {}
+    now = time.time()
+    for key in [k for k in _KEPT_SHORT_SINCE
+                if k[0] == conn_id and k[1] not in short]:
+        _KEPT_SHORT_SINCE.pop(key, None)
+    if not short or (report.get("executions") or {}).get("error"):
+        return
+    due = {}
+    for sym in short:
+        if sym in (fold_pending or {}) or sym in (late_fills or ()):
+            _KEPT_SHORT_SINCE.pop((conn_id, sym), None)
+            continue
+        first = _KEPT_SHORT_SINCE.setdefault((conn_id, sym), now)
+        if now - first >= KEPT_WRITE_DOWN_AFTER_S:
+            due[sym] = seen.kept_now.get(sym, 0.0)
+    if not due:
+        return
+    try:
+        lines = _executions.kept_write_down(conn_id, due, managed)
+    except Exception as e:
+        report["errors"].append(f"kept-share write-down failed: {e!r}"[:300])
+        return
+    for sym in due:
+        _KEPT_SHORT_SINCE.pop((conn_id, sym), None)
+    report["actions"].extend(lines[:10])
+
+
+def set_liquidation_source(fn) -> None:
+    """Install fn(session, conn_id) -> {SYMBOL: last price}: symbols a
+    stopped deployment still holds and asked to have sold. Each joins this
+    connection's target at zero shares from the deployments that are
+    stopping, so it is sold even when no running deployment trades it. The
+    host ends a liquidation once the deployment's books are flat."""
+    global _LIQUIDATIONS
+    _LIQUIDATIONS = fn
 
 
 _ERROR_OBSERVER = None
@@ -2083,6 +2199,15 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         # market delta after it fills.
         moc_have = (float(positions.get(sym) or 0.0)
                     + moc_native_qty.get(sym, 0.0))
+        kq = (getattr(adapter, "kept_now", None) or {}).get(sym, 0.0)
+        ks = (getattr(adapter, "kept_short", None) or {}).get(sym, 0)
+        if (kq > 0 and side == "sell" and qabs > moc_have) or \
+                (kq < 0 and side == "buy" and qabs > -moc_have) or \
+                (ks > 0 and side == "sell") or (ks < 0 and side == "buy"):
+            report["actions"].append(
+                f"{kind} {sym}: {side} {qabs:g} held — it would trade into "
+                f"{kq:g} shares the owner kept from a stopped strategy")
+            continue
         moc_opens_short = False
         through = ((side == "sell" and 0 < moc_have < qabs)
                    or (side == "buy" and 0 < -moc_have < qabs))
@@ -2433,6 +2558,23 @@ def reconcile(adapter, creds, desired, exit_wants, last_px, rails, report,
         #                                 now, the long follows.
         # A holding smaller than one order step cannot be sold or bought
         # back at all; it counts as flat.
+        kq = (getattr(adapter, "kept_now", None) or {}).get(sym, 0.0)
+        if (kq > 0 and want < 0) or (kq < 0 and want > 0):
+            # the strategies here want the other side of shares the owner
+            # kept: an order now would trade into the owner's shares
+            report["actions"].append(
+                f"{sym} held — the strategies want {want:g} but the account "
+                f"holds {kq:g} the owner kept from a stopped strategy")
+            continue
+        ks = (getattr(adapter, "kept_short", None) or {}).get(sym, 0)
+        if (ks > 0 and delta < 0) or (ks < 0 and delta > 0):
+            why = (f"{sym}: {'SELL' if delta < 0 else 'BUY'} {abs(delta):g} "
+                   f"held — the account holds less than the shares the owner "
+                   f"kept plus the strategies' own, so it cannot tell whose "
+                   f"shares this would trade. It sends once the fills are "
+                   f"in, or the owner's kept shares are cleared")
+            report["errors"].append(why)
+            continue
         eff = have + pending_qty + moc_native_qty.get(sym, 0.0)
         opens_short = False
         if delta < 0 and eff > 0 and eff + delta < 0:
@@ -3385,6 +3527,24 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             known_symbols = _gc_entry["known_symbols"]
         else:
             known_symbols = _known_symbols_read(s, conn_id)
+        # the owner's kept shares and the stopped deployments being sold
+        # off: read fresh every pass, never from the cache. A failed read
+        # of the kept shares stops the pass below before anything is sent.
+        from dqengine.live import executions as _executions
+        kept_err = None
+        try:
+            kept = _executions.kept_holdings(s, conn_id,
+                                             {d.id for d in deps})
+        except Exception as e:
+            kept, kept_err = None, repr(e)
+        liquidating = {}
+        if _LIQUIDATIONS is not None:
+            try:
+                liquidating = {str(k).upper(): float(v or 0.0) for k, v in
+                               (_LIQUIDATIONS(s, conn_id) or {}).items()}
+            except Exception as e:
+                print(f"[exec] liquidation lookup failed {conn_id}: {e!r}",
+                      flush=True)
         if not _use_cache:
             _GATHER_CACHE[conn_id] = {
                 "at": time.time(), "moc_done": moc_done,
@@ -3505,9 +3665,22 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
         # a malformed payload is a report error with the tail still running
         # (H26), not a sweep that vanishes before it writes anything down.
         inputs = connection_inputs(dep_states, conn_id, owners)
-        desired = inputs.state.desired
+        desired = dict(inputs.state.desired)
         exit_wants = inputs.state.exit_wants
-        last_px = inputs.state.last_px
+        last_px = dict(inputs.state.last_px)
+        if kept is None:
+            raise RuntimeError(
+                f"could not read the shares the owner kept in this account "
+                f"({kept_err}); nothing was sent")
+        if liquidating and known_symbols is not None:
+            # a stopping deployment's own books vouch for what it sells
+            known_symbols = set(known_symbols) | set(liquidating)
+        for lsym, lpx in liquidating.items():
+            # a stopping deployment's share of the target is zero; a running
+            # deployment's want on the same symbol is already in `desired`
+            desired.setdefault(lsym, 0.0)
+            if lpx > 0:
+                last_px.setdefault(lsym, lpx)
         moc_wants = inputs.state.close_wants
         entry_wants = inputs.state.entry_wants
         if fast:
@@ -3518,7 +3691,8 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
         # read once and handed to both branches below, so the frame records
         # the same backoff reconcile() was given
         submit_backoff_in = _get_submit_backoff(conn_id)
-        frame.update(dep_states=dep_states, desired=desired,
+        seen = KeptView(wrapped, kept)
+        frame.update(dep_states=dep_states, desired=desired, kept=kept,
                      exit_wants=exit_wants, entry_wants=entry_wants,
                      close_wants=moc_wants, last_px=last_px,
                      held_px=inputs.state.held_px, rails=rails,
@@ -3535,7 +3709,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             # recent activity cannot explain is drift -- freeze, loudly.
             shadow = {"synced_at": report["synced_at"], "actions": [],
                       "errors": []}
-            reconcile(wrapped, creds, desired, exit_wants, last_px, rails,
+            reconcile(seen, creds, desired, exit_wants, last_px, rails,
                       shadow, lambda e: None, moc_wants=moc_wants,
                       entry_wants=entry_wants, moc_done=moc_done,
                       recent_refusals=recent_refusals,
@@ -3568,7 +3742,7 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             report["actions"].extend(shadow["actions"][:20])
             report["errors"].extend(shadow["errors"][:5])
         else:
-            reconcile(wrapped, creds, desired, exit_wants, last_px, rails,
+            reconcile(seen, creds, desired, exit_wants, last_px, rails,
                       report, entries.append, moc_wants=moc_wants,
                       entry_wants=entry_wants, moc_done=moc_done,
                       recent_refusals=recent_refusals,
@@ -3594,9 +3768,14 @@ def sync_broker_account(conn_id: str, fast: bool = False) -> str:
             # several deployments on one symbol: split this connection's
             # netted fills between them (the host's allocator), told what
             # this sweep saw at the venue and what it was reconciling to
+            fetched = getattr(wrapped, "fetched_positions", None)
             _allocate_into(report, conn_id,
-                           getattr(wrapped, "fetched_positions", None),
+                           None if fetched is None
+                           else carve_kept(fetched, kept),
                            desired)
+        if truth_mode == "enforce" and not fast:
+            _kept_self_heal(report, conn_id, seen, fold_pending, late_fills,
+                            {d.id for d in deps})
         # journal recovery (spec: 2026-08-31-order-journal.md): resolve
         # aged `sending` rows against this sweep's own venue evidence --
         # the audit's open-orders fetch and the executions poll verdict.

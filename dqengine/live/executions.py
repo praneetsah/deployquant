@@ -109,6 +109,76 @@ def _extra_holders(session, conn_id) -> dict:
         return {}
 
 
+_KEPT_HOLDINGS = None
+
+
+def set_kept_holdings(fn) -> None:
+    """Install fn(session, conn_id, managed) -> {SYMBOL: {"kept": signed
+    qty, "booked": what the managed deployments hold by their books}}:
+    shares in the
+    account that belong to its owner, outside every deployment -- what a
+    deployment stopped with "keep my positions" left behind. The sweep hides
+    them from the deployments that still trade the symbol (so none of them
+    sells or adopts them), and a fill in one of those symbols that this
+    executor did not send is the owner's own trade, never a deployment's.
+
+    `managed` is the set of deployment ids the caller still treats as
+    running: a stop that commits between the caller's read of its
+    deployments and this read must not count one deployment's shares both
+    as its own and as the owner's (the sweep would buy them again).
+
+    A lookup that fails raises: the sweep then sends nothing, because
+    trading without knowing which shares are the owner's could sell them."""
+    global _KEPT_HOLDINGS
+    _KEPT_HOLDINGS = fn
+
+
+_KEPT_WRITE_DOWN = None
+
+
+def set_kept_write_down(fn) -> None:
+    """Install fn(conn_id, {SYMBOL: qty the account holds of them now},
+    managed) -> [report lines]: the sweep saw fewer kept shares in the
+    account than the kept amount, with nothing pending to explain it, for
+    long enough that it is real (the owner sold them where no poll sees
+    it, or a fill of the stopped deployment's own order). The host checks
+    its own evidence and lowers the kept amount, which lifts the hold on
+    the running deployments' orders in the symbol."""
+    global _KEPT_WRITE_DOWN
+    _KEPT_WRITE_DOWN = fn
+
+
+def kept_write_down(conn_id, now_held, managed=()) -> list:
+    if _KEPT_WRITE_DOWN is None or not now_held:
+        return []
+    return list(_KEPT_WRITE_DOWN(conn_id, dict(now_held),
+                                 frozenset(managed)) or [])
+
+
+def kept_holdings(session, conn_id, managed=()) -> dict:
+    if _KEPT_HOLDINGS is None:
+        return {}
+    out = {}
+    for k, v in (_KEPT_HOLDINGS(session, conn_id, frozenset(managed))
+                 or {}).items():
+        q = float(v["kept"])
+        if q:
+            out[str(k).upper()] = {"kept": q,
+                                   "booked": float(v.get("booked") or 0.0)}
+    return out
+
+
+def is_our_fill(row, our_order_ids, our_cids) -> bool:
+    """A fill of an order this executor sent: by its client order id
+    prefix, or by an id it recorded when it sent the order (venues without
+    client order ids are matched on the broker's order id)."""
+    cid = str(row.get("client_order_id") or "")
+    if cid.startswith(("sl-", "en-")) or (cid and cid in our_cids):
+        return True
+    oid = row.get("broker_order_id") or ""
+    return bool(oid) and oid in our_order_ids
+
+
 def shared_symbols(session, conn_id) -> dict:
     """{SYMBOL: [deployment_id, ...]} for symbols that two or more of this
     connection's managed deployments (plus any extra holders) trade."""
@@ -143,6 +213,18 @@ def attribute(session, conn_id: str, rows: list) -> list:
     by_cid = {o.client_order_id: o for o in orders if o.client_order_id}
     universes = _deployment_universes(session, conn_id)
     extra = _extra_holders(session, conn_id)
+    kept = kept_holdings(session, conn_id, universes)
+    if kept:
+        from dqengine.live.persistence import OrderJournal
+        our_order_ids, our_cids = set(), set()
+        for model in (BrokerOrder, OrderJournal):
+            for o, c in (session.query(model.broker_order_id,
+                                       model.client_order_id)
+                         .filter(model.connection_id == conn_id).all()):
+                if o:
+                    our_order_ids.add(o)
+                if c:
+                    our_cids.add(c)
 
     out = []
     for r in rows:
@@ -156,6 +238,10 @@ def attribute(session, conn_id: str, rows: list) -> list:
         if match is not None:
             dep_id = match.deployment_id
             rule_tag = match.rule_tag
+        elif sym in kept and not is_our_fill(r, our_order_ids, our_cids):
+            # the owner trading shares they kept: theirs, not the one
+            # deployment that happens to trade the same symbol
+            pass
         else:
             holders = [d for d, syms in universes.items() if sym in syms]
             also = [d for d, syms in extra.items()

@@ -229,7 +229,7 @@ def build(frame: dict) -> dict:
                 "held_px", "rails", "truth_mode", "moc_done",
                 "recent_refusals", "qb_cooldown", "fold_pending",
                 "journal_gates", "submit_backoff_in", "buying_power",
-                "known_symbols"):
+                "known_symbols", "kept"):
         if key in frame:
             built[key] = _json(frame[key])
     return built

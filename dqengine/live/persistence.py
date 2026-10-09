@@ -133,6 +133,9 @@ class Deployment(Base):
     # executions, orders and fill shares are the account's real history, and
     # a fill with no deployment would read as a manual trade
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+    # what a stop did with the deployment's positions: "keep" (they became
+    # the account owner's, see executions.set_kept_holdings) or "sell"
+    stop_mode = Column(String, nullable=True)
 
 
 def managed_deployments(session, conn_id):
@@ -416,3 +419,5 @@ def init_db():
                        "reconciled_from DATE"))
         c.execute(text("ALTER TABLE deployments ADD COLUMN IF NOT EXISTS "
                        "deleted_at TIMESTAMPTZ"))
+        c.execute(text("ALTER TABLE deployments ADD COLUMN IF NOT EXISTS "
+                       "stop_mode VARCHAR"))
