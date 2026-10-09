@@ -28,7 +28,7 @@ from datetime import date, datetime
 from dqengine.live import determinism
 from dqengine.sandbox import pyrunner
 from dqengine.live.driver.deployment import (
-    _dep_resolution, _dep_universe, sleeve_equity_now)
+    _dep_resolution, _dep_universe, sleeve_equity_now, signed_cash)
 from dqengine.live.driver import ports
 from dqengine.runtime.identity import intent_id
 
@@ -410,8 +410,15 @@ def _cash_events(events) -> list:
     """Deposits in the IR engine's cfg.cash_events shape: [(iso_day, amt)].
     Both replays are built from THIS list, so a sleeve that received cash
     after it started sizes identically on both engines."""
-    return [(e.effective_date.isoformat(), float(e.amount))
-            for e in (events or []) if getattr(e, "kind", None) == "deposit"]
+    out = []
+    for e in (events or []):
+        if getattr(e, "kind", None) not in ("deposit", "withdraw"):
+            continue
+        row = (e.effective_date.isoformat(), signed_cash(e))
+        # a withdrawal that sells shares: the plan the owner confirmed
+        sells = ((getattr(e, "detail", None) or {}).get("sells")) or None
+        out.append(row + ({"sells": sells},) if sells else row)
+    return out
 
 
 def _run_replay(dep, events, ledger=None, code=None) -> dict:
@@ -972,8 +979,7 @@ def _payload_from_result(dep, events: list, res: dict) -> dict:
     # the next tick on)
     today_iso = today.isoformat() if hasattr(today, "isoformat") else str(today)
 
-    contributed = dep.cash_initial + sum(
-        e.amount for e in events if e.kind == "deposit")
+    contributed = dep.cash_initial + sum(signed_cash(e) for e in events)
     # sleeve_equity_now compares a deposit's effective_date against the last
     # equity day, so the days must be real dates — the sandbox hands them
     # over as ISO strings and a str/date comparison raises the moment a
@@ -987,7 +993,10 @@ def _payload_from_result(dep, events: list, res: dict) -> dict:
             "end_equity": round(equity_now, 2),
             "contributed": round(contributed, 2),
             "pnl": round(equity_now - contributed, 2),
-            "return_pct": round((equity_now / contributed - 1) * 100, 2)
+            # net of withdrawals the sleeve can have paid out everything it
+            # was given: no base to measure a return against
+            "return_pct": (round((equity_now / contributed - 1) * 100, 2)
+                           if contributed > 0 else None)
             if contributed > 0 else 0.0,
         },
         "equity": {"days": res["equity_days"],

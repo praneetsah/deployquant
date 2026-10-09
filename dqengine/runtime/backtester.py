@@ -334,10 +334,19 @@ class PyBacktester:
         self._equity_days: list[date] = []
         self._equity: list[float] = []
         self._flows: list[float] = []
+        # cash events: (iso_day, amount) or (iso_day, amount, {"sells":
+        # {SYM: qty}}) -- a withdrawal that sells shares to raise the cash
         self._pending_deposits: dict[str, float] = {}
-        for d_iso, amt in (ov.cash_events or []):
+        self._pending_sells: dict[str, dict] = {}
+        for ev in (ov.cash_events or []):
+            d_iso, amt = ev[0], ev[1]
             self._pending_deposits[d_iso] = (
                 self._pending_deposits.get(d_iso, 0.0) + float(amt))
+            extra = ev[2] if len(ev) > 2 else None
+            for sym, q in ((extra or {}).get("sells") or {}).items():
+                ps = self._pending_sells.setdefault(d_iso, {})
+                ps[str(sym).upper()] = ps.get(str(sym).upper(), 0) + int(q)
+        self._sells_due: dict = {}      # placed at the session's first bar
         self._pending_flow = 0.0        # deposits since the last equity mark
         self._on_data = resolve_hook(algo, "on_data", "OnData")
         self._on_eod = resolve_hook(algo, "on_end_of_day", "OnEndOfDay")
@@ -476,6 +485,10 @@ class PyBacktester:
                 amt = self._pending_deposits.pop(d_iso)
                 self._sleeve.cash += amt
                 self._pending_flow += amt
+            for d_iso in [k for k in self._pending_sells
+                          if k <= day.isoformat()]:
+                for sym, q in self._pending_sells.pop(d_iso).items():
+                    self._sells_due[sym] = self._sells_due.get(sym, 0) + q
 
         open_ms = REG_OPEN_MS
         close_ms = close_time_ms(day)
@@ -623,6 +636,24 @@ class PyBacktester:
         self._prev_t = resume_after
         return None if fast_done else resume_after
 
+    def _place_withdraw_sells(self) -> None:
+        """A withdrawal's share sales (a cash event's `sells`), placed at the
+        session's first bar as market sells of up to what the sleeve holds,
+        the way the strategy itself would place them: filled, fee'd and
+        listed like any other order, tagged "withdraw". A symbol the sleeve
+        no longer holds, or has no price for, is a notice, not an order."""
+        due, self._sells_due = self._sells_due, {}
+        for sym, qty in due.items():
+            held = self._sleeve.qty.get(sym, 0)
+            q = min(int(qty), held) if held > 0 else 0
+            px = self._prices.get(sym, 0.0)
+            if q <= 0 or px <= 0:
+                self._book._notice(
+                    f"withdraw: the sale of {qty} {sym} was skipped "
+                    f"({'the strategy holds none' if q <= 0 else 'no price yet'})")
+                continue
+            self._book.market(sym, -q, px, tag="withdraw")
+
     def _step_bar(self, day: date, t: int, entries: list[tuple[str, int]]) -> None:
         """One merged bar-end: `entries` is every (symbol, bar index into
         self._day_bars[symbol]) whose bar ends at t — two symbols at one
@@ -641,6 +672,8 @@ class PyBacktester:
 
         self._ms = t
         algo.time = _dt(day, t)
+        if self._sells_due and not self._warm:
+            self._place_withdraw_sells()
         if self._daily_lean_order and not self._first_bar_done and not self._warm:
             self._run_pre_bar_events(day)
             if algo._quit:

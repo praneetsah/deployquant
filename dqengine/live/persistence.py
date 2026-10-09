@@ -166,10 +166,15 @@ class SleeveEvent(Base):
     __tablename__ = "sleeve_events"
     id = Column(String, primary_key=True, default=_uuid)
     deployment_id = Column(String, ForeignKey("deployments.id"), nullable=False)
-    kind = Column(String, nullable=False)            # deposit
-    amount = Column(Float, nullable=False)
+    kind = Column(String, nullable=False)            # deposit | withdraw
+    amount = Column(Float, nullable=False)           # always positive
     effective_date = Column(Date, nullable=False)
     created_at = Column(DateTime(timezone=True), default=_now)
+    # the caller's own id for the request, so a retry of a timed-out
+    # request records the event once (unique per deployment)
+    client_key = Column(String, nullable=True)
+    # a withdrawal's share sales: {"sells": {SYM: qty}, "est_proceeds": $}
+    detail = Column(JSONB, nullable=True)
 
 
 class BrokerOrder(Base):
@@ -421,3 +426,9 @@ def init_db():
                        "deleted_at TIMESTAMPTZ"))
         c.execute(text("ALTER TABLE deployments ADD COLUMN IF NOT EXISTS "
                        "stop_mode VARCHAR"))
+        c.execute(text("ALTER TABLE sleeve_events ADD COLUMN IF NOT EXISTS "
+                       "client_key VARCHAR"))
+        c.execute(text("ALTER TABLE sleeve_events ADD COLUMN IF NOT EXISTS "
+                       "detail JSONB"))
+        c.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_sleeve_event_key "
+                       "ON sleeve_events (deployment_id, client_key)"))

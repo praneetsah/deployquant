@@ -83,6 +83,20 @@ def next_tick_delay_s(now: datetime = None, interval_open_s: int = 60,
     return max(delay, 1.0)
 
 
+CASH_EVENT_KINDS = ("deposit", "withdraw")
+
+
+def signed_cash(event) -> float:
+    """A sleeve event as cash into the sleeve: a deposit adds, a withdrawal
+    takes out. Amounts are stored positive; the kind carries the sign."""
+    kind = getattr(event, "kind", None)
+    if kind == "deposit":
+        return float(event.amount)
+    if kind == "withdraw":
+        return -float(event.amount)
+    return 0.0
+
+
 def sleeve_equity_now(equity_values, equity_days, cash_initial, events):
     """Current sleeve worth, counting deposits the replay hasn't reached.
 
@@ -93,8 +107,8 @@ def sleeve_equity_now(equity_values, equity_days, cash_initial, events):
     top-up as "not managed by a strategy" and the add-cash dialog offers the
     same dollars as free room again."""
     last_day = equity_days[-1] if equity_days else None
-    pending = sum(e.amount for e in events
-                  if e.kind == "deposit"
+    pending = sum(signed_cash(e) for e in events
+                  if e.kind in CASH_EVENT_KINDS
                   and (last_day is None or e.effective_date > last_day))
     base = equity_values[-1] if equity_values else cash_initial
     return base + pending
@@ -143,7 +157,9 @@ def _consume_stale_marker(dep_id: str):
 
 
 def _deposit_count(events: list) -> int:
-    return sum(1 for e in events if e.kind == "deposit")
+    """Cash events of either kind: a withdrawal changes the sleeve's history
+    exactly as a deposit does, so the warm engine rebuilds on both."""
+    return sum(1 for e in events if e.kind in CASH_EVENT_KINDS)
 
 
 POST_CLOSE_DECIDABLE_S = 600     # 10 min of clean sweeps after the close
