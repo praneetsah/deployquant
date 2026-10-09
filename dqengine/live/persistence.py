@@ -129,6 +129,10 @@ class Deployment(Base):
     # replay's model prices; NULL means the whole history is modeled. The
     # equity curve renders this boundary so the two are never silently mixed.
     reconciled_from = Column(Date, nullable=True)
+    # set when the owner deletes a stopped deployment. The row stays: its
+    # executions, orders and fill shares are the account's real history, and
+    # a fill with no deployment would read as a manual trade
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 
 def managed_deployments(session, conn_id):
@@ -410,3 +414,5 @@ def init_db():
                        "DEFAULT 'off'"))
         c.execute(text("ALTER TABLE deployments ADD COLUMN IF NOT EXISTS "
                        "reconciled_from DATE"))
+        c.execute(text("ALTER TABLE deployments ADD COLUMN IF NOT EXISTS "
+                       "deleted_at TIMESTAMPTZ"))
