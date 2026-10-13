@@ -1,4 +1,5 @@
 from dqengine.runtime.algorithm import QCAlgorithm
+from dqengine.runtime.portfolio_view import PortfolioTarget
 from dqengine.runtime.backtester import PyBacktester
 
 from conftest_helpers import two_day_store
@@ -106,3 +107,33 @@ def test_short_holding_surface():
     assert abs(s["upnl_pct"] - s["upnl"] / abs(s["cost"])) < 1e-12
     assert s["pf_vals"] == ["TQQQ"]
     assert abs(s["pf_upnl"] - s["upnl"]) < 1e-9
+
+
+class TooSmall(QCAlgorithm):
+    """A 50% target on a $50 sleeve is $25, below one $100 share."""
+    def initialize(self):
+        self.set_start_date(2026, 8, 24)
+        self.set_end_date(2026, 8, 24)
+        self.set_cash(50)
+        self.sym = self.add_equity("TQQQ").symbol
+        self.done = False
+
+    def on_data(self, data):
+        if not self.done:
+            self.done = True
+            self.set_holdings(self.sym, 0.5)
+            self.set_holdings([PortfolioTarget("TQQQ", 0.3)])
+
+
+def test_set_holdings_below_one_share_says_so():
+    """A target that rounds to zero shares used to vanish: no order, no
+    line, a deployment that looks 'running, flat' forever. Now the strategy
+    log names the symbol, the dollars and the share price."""
+    algo = TooSmall()
+    res = PyBacktester(algo, two_day_store()).run()
+    assert "error" not in res, res.get("error")
+    assert res["fills"] == []
+    lines = [l for l in res["logs"] if "below one share" in l]
+    assert len(lines) == 2, res["logs"]
+    assert "TQQQ" in lines[0] and "$25" in lines[0] and "$100.00" in lines[0]
+    assert "$15" in lines[1]

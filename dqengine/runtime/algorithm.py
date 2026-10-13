@@ -351,6 +351,8 @@ class QCAlgorithm(PascalMixin):
                 delta = int((w * tpv - current * price) / price)
                 if delta != 0:
                     deltas.append((s, delta, price))
+                elif w > 0 and current == 0:
+                    self._log_below_one_share(s, w, tpv, price)
             for s, delta, price in sorted(deltas, key=lambda d: d[1]):
                 book.market(s, delta, price=price, tag=tag)
             return None
@@ -362,12 +364,25 @@ class QCAlgorithm(PascalMixin):
         price = self._px(sym)
         if price <= 0:
             return None
-        target_value = float(percentage) * self.portfolio.total_portfolio_value
+        tpv = self.portfolio.total_portfolio_value
+        target_value = float(percentage) * tpv
         current = book.sleeve.qty.get(sym, 0)
         delta = int((target_value - current * price) / price)
         if delta != 0:
             return book.market(sym, delta, price=price, tag=tag)
+        if float(percentage) > 0 and current == 0:
+            self._log_below_one_share(sym, float(percentage), tpv, price)
         return None
+
+    def _log_below_one_share(self, sym, weight, tpv, price) -> None:
+        """A target that rounds to zero shares places no order. Without a
+        line it also leaves no trace: a $1,000 sleeve asked for 5% of a
+        $300 stock shows 'running, flat' and nothing says why. Logged, not
+        raised, because the backtest behaves the same way and the user
+        chose the sleeve size."""
+        self.log(f"{sym}: {weight:.1%} of ${tpv:,.0f} is "
+                 f"${weight * tpv:,.0f}, below one share at ${price:,.2f}. "
+                 f"Not bought.")
 
     # ---------- data ----------
 

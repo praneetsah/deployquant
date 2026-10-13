@@ -498,6 +498,9 @@ _NEVER_RESTS = frozenset({"market"})
 # them ever reaching a venue. The broker legs are the next commits.
 _DAILY_EDGE = {"market_on_close": "at this session's close",
                "market_on_open": "at the next session's open"}
+# when daily_preview hands the executor the matching broker order
+_DAILY_SENT = {"market_on_close": "just before that close",
+               "market_on_open": "just after that open"}
 
 
 # The identity of a resting python order is defined in the ENGINE
@@ -543,10 +546,10 @@ def project_orders(open_orders: list, holdings: list,
         if kind not in _ENTRY_TYPE:
             if daily and kind in _DAILY_EDGE:
                 deferred.append(
-                    f"{sym} {qty:+d} fills {_DAILY_EDGE[kind]}, which is "
-                    f"where this strategy's backtest fills it. On paper "
-                    f"that is the whole trade; a brokerage account cannot "
-                    f"take this order yet.")
+                    f"{sym} {qty:+d} fills {_DAILY_EDGE[kind]}, where this "
+                    f"strategy's backtest fills it too. On paper that is "
+                    f"the whole trade. On a brokerage account the order is "
+                    f"sent to the broker {_DAILY_SENT[kind]}.")
             elif kind not in _NEVER_RESTS:
                 # A RESTING ticket the executor cannot carry. Dropping it
                 # silently is the worst failure available here: the engine

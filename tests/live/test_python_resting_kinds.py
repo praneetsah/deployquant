@@ -78,3 +78,21 @@ def test_the_engine_exports_the_trail_on_a_resting_ticket():
     book.trailing_stop("TQQQ", -10, 0.05, tag="t")
     t = book._open[0]
     assert t.trailing_amount == 0.05 and t.trailing_as_percentage is True
+
+
+def test_a_daily_edge_ticket_says_when_the_broker_order_goes_out():
+    """The journal line for a daily market-on-open/close ticket used to end
+    'a brokerage account cannot take this order yet', written before the
+    broker legs existed. A user read it as 'my orders never reach my
+    broker'. The line now says where it fills and when it is sent."""
+    from dqengine.live.driver import engine
+    _, _, deferred = engine.project_orders(
+        [_o("SGOV", 2, "market_on_open", 3)], [], daily=True)
+    assert len(deferred) == 1
+    line = deferred[0]
+    assert line.startswith("SGOV +2 fills at the next session's open")
+    assert "cannot take" not in line
+    assert "sent to the broker just after that open" in line
+    _, _, deferred = engine.project_orders(
+        [_o("SGOV", -2, "market_on_close", 3)], [_h("SGOV", 2)], daily=True)
+    assert "sent to the broker just before that close" in deferred[0]
