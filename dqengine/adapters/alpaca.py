@@ -96,6 +96,16 @@ def _req(creds, method, path, body=None, params=None):
         raise BrokerUnavailable(f"could not reach Alpaca: {e}")
 
 
+# The fill feed speaks the FIX side vocabulary (the SDK's OrderSide): a
+# short sale comes back as "sell_short", not "sell". Before 2026-10-17 such a
+# row failed normalize_execution's buy|sell check and was SKIPPED, so a
+# strategy's short leg was never booked and the sweep covered it the same
+# morning (raoc, 2026-10-15). Anything not listed here is still skipped.
+_FILL_SIDES = {"buy": "buy", "buy_minus": "buy",
+               "sell": "sell", "sell_plus": "sell",
+               "sell_short": "sell", "sell_short_exempt": "sell"}
+
+
 def _norm_order(o: dict) -> dict:
     return {"id": o.get("id", ""), "symbol": (o.get("symbol") or "").upper(),
             "qty": float(o.get("qty") or 0), "side": o.get("side", ""),
@@ -209,7 +219,9 @@ class AlpacaAdapter(BrokerAdapter):
                     out.append(normalize_execution(
                         broker_order_id=a.get("order_id"),
                         broker_exec_id=a.get("id"), symbol=a.get("symbol"),
-                        side=a.get("side"), qty=a.get("qty"),
+                        side=_FILL_SIDES.get(str(a.get("side") or "").lower(),
+                                             a.get("side")),
+                        qty=a.get("qty"),
                         price=a.get("price"), filled_at=when))
                 except (ValueError, TypeError) as exc:
                     # A single malformed activity (bad side/qty/price/etc.)
