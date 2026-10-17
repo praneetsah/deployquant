@@ -63,6 +63,45 @@ def test_our_own_netted_fill_on_a_shared_symbol_is_nobodys(pg, owner_id):
         assert e.deployment_id is None and e.source == "shared"
 
 
+def test_a_netted_fill_matched_only_by_broker_order_id_is_shared(pg, owner_id):
+    """Alpaca's fill feed carries the broker's order id and no client order
+    id (raoc, 2026-10-15: every shared-symbol fill on an Alpaca paper
+    account landed `manual`, read as "no fill", and the sweep sold the
+    shares). A fill whose broker order id is one this executor recorded
+    for a netted order is ours, cid or not."""
+    _seed(pg, owner_id)
+    with pg() as s:
+        s.add(persistence.BrokerOrder(
+            connection_id="cs", deployment_id=None, broker_order_id="bo-77",
+            client_order_id="sl-mkt-SPY-ab12cd34", symbol="SPY", qty=30.0,
+            side="buy", order_type="market", action="submit"))
+        s.commit()
+        row = _row("e1", cid="")
+        row["broker_order_id"] = "bo-77"
+        executions.store(s, "cs", [row])
+        s.commit()
+        e = s.query(persistence.Execution).one()
+        assert e.deployment_id is None and e.source == "shared"
+
+
+def test_a_netted_fill_known_only_to_the_journal_is_shared(pg, owner_id):
+    """The write-ahead journal holds the order before its broker_orders row
+    exists; a fill polled in that window is still ours."""
+    _seed(pg, owner_id)
+    with pg() as s:
+        s.add(persistence.OrderJournal(
+            connection_id="cs", client_order_id="sl-mkt-SPY-ab12cd34",
+            broker_order_id="bo-78", symbol="SPY", side="buy", qty=30.0,
+            kind="market", state="submitted"))
+        s.commit()
+        row = _row("e1", cid="")
+        row["broker_order_id"] = "bo-78"
+        executions.store(s, "cs", [row])
+        s.commit()
+        e = s.query(persistence.Execution).one()
+        assert e.deployment_id is None and e.source == "shared"
+
+
 def test_a_manual_trade_on_a_shared_symbol_stays_manual(pg, owner_id):
     """Not our order: the account holder traded their own account."""
     _seed(pg, owner_id)

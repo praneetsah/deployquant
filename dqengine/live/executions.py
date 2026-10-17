@@ -214,17 +214,26 @@ def attribute(session, conn_id: str, rows: list) -> list:
     universes = _deployment_universes(session, conn_id)
     extra = _extra_holders(session, conn_id)
     kept = kept_holdings(session, conn_id, universes)
-    if kept:
-        from dqengine.live.persistence import OrderJournal
-        our_order_ids, our_cids = set(), set()
-        for model in (BrokerOrder, OrderJournal):
-            for o, c in (session.query(model.broker_order_id,
-                                       model.client_order_id)
-                         .filter(model.connection_id == conn_id).all()):
-                if o:
-                    our_order_ids.add(o)
-                if c:
-                    our_cids.add(c)
+    # Every order this executor ever sent on the connection, by both ids:
+    # the audit trail AND the write-ahead journal (which holds an order
+    # before its broker_orders row is written). Read unconditionally: a
+    # netted order on a shared symbol is recorded with deployment_id NULL,
+    # so `by_order_id` above never sees it, and a venue whose fill feed
+    # carries no client order id (Alpaca's account activities) can only be
+    # matched here. Before 2026-10-17 this ran only when shares were kept,
+    # and every shared-symbol fill on an Alpaca account landed `manual`:
+    # under `enforce` that read as "the broker did not fill" and the next
+    # sweep sold the shares the account held.
+    from dqengine.live.persistence import OrderJournal
+    our_order_ids, our_cids = set(), set()
+    for model in (BrokerOrder, OrderJournal):
+        for o, c in (session.query(model.broker_order_id,
+                                   model.client_order_id)
+                     .filter(model.connection_id == conn_id).all()):
+            if o:
+                our_order_ids.add(o)
+            if c:
+                our_cids.add(c)
 
     out = []
     for r in rows:
@@ -246,7 +255,7 @@ def attribute(session, conn_id: str, rows: list) -> list:
             holders = [d for d, syms in universes.items() if sym in syms]
             also = [d for d, syms in extra.items()
                     if sym in syms and d not in universes]
-            ours = str(r["client_order_id"] or "").startswith("sl-")
+            ours = is_our_fill(r, our_order_ids, our_cids)
             if ours and (len(holders) + len(also) >= 2 or also):
                 # A fill of the executor's own NETTED order on a symbol more
                 # than one deployment trades (or one a stopped deployment is
